@@ -515,7 +515,7 @@ function AuthScreen() {
 
   if (checkEmail) {
     return (
-      <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "#000" }}>
         <div className="ft-card" style={{ maxWidth: 380, width: "100%", textAlign: "center" }}>
           <CheckCircle2 size={22} style={{ marginBottom: 8 }} />
           <h3 className="ft-display" style={{ marginTop: 0 }}>Check your email</h3>
@@ -536,7 +536,7 @@ function AuthScreen() {
 
   if (resetSent) {
     return (
-      <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "#000" }}>
         <div className="ft-card" style={{ maxWidth: 380, width: "100%", textAlign: "center" }}>
           <CheckCircle2 size={22} style={{ marginBottom: 8 }} />
           <h3 className="ft-display" style={{ marginTop: 0 }}>Check your email</h3>
@@ -556,13 +556,13 @@ function AuthScreen() {
   }
 
   return (
-    <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div className="ft-card" style={{ maxWidth: 380, width: "100%" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-          <Activity color="var(--ink)" size={20} />
-          <span style={{ fontSize: 21, fontWeight: 700, fontFamily: "Georgia, serif", letterSpacing: "0.03em", textTransform: "uppercase", color: "var(--ink)" }}>FIT DATA</span>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "#000" }}>
+      <div className="ft-card" style={{ maxWidth: 440, width: "100%" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, marginBottom: 20 }}>
+          <Activity color="var(--ink)" size={60} />
+          <span style={{ fontSize: 60, fontWeight: 700, fontFamily: "Georgia, serif", letterSpacing: "0.03em", textTransform: "uppercase", color: "var(--ink)", textAlign: "center" }}>FIT DATA</span>
         </div>
-        <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 0, marginBottom: 20 }}>
+        <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 0, marginBottom: 20, textAlign: "center" }}>
           {mode === "signup" ? "Create an account to start tracking your training."
             : mode === "reset" ? "Enter your email and we'll send you a reset link."
             : "Sign in to track your training."}
