@@ -5,8 +5,9 @@ import {
 } from "recharts";
 import {
   Flame, Dumbbell, Target, TrendingUp, Plus, Trash2, LogOut, Lock,
-  CheckCircle2, User, Calendar, Activity, Trophy, ChevronRight, X, AlertTriangle, XCircle, Share2, Download, Repeat,
+  CheckCircle2, User, Calendar, Activity, Trophy, ChevronRight, X, AlertTriangle, XCircle, Share2, Download, Repeat, Menu,
 } from "lucide-react";
+import { supabase } from "./src/supabaseClient.js";
 
 /* ---------------------------------------------------------------------- */
 /* Design tokens                                                          */
@@ -61,6 +62,38 @@ const TOKENS = `
     .ft-root{ background:#fff; }
     .print-area{ box-shadow:none !important; }
     body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+
+  .ft-hamburger{ display:none; }
+  .ft-sidebar-close{ display:none; }
+  .ft-overlay{ display:none; }
+
+  @media (max-width: 768px){
+    .ft-hamburger{
+      display:flex; align-items:center; justify-content:center;
+      width:42px; height:42px; border-radius:6px; border:1px solid var(--line-strong);
+      background:var(--paper); color:var(--ink); cursor:pointer;
+      position:fixed; top:12px; left:12px; z-index:70;
+      box-shadow:0 2px 8px rgba(0,0,0,.15);
+    }
+    .ft-sidebar{
+      position:fixed !important; top:0; left:0; height:100vh; z-index:65;
+      transform:translateX(-100%); transition:transform .25s ease;
+      box-shadow:4px 0 24px rgba(0,0,0,.4);
+    }
+    .ft-sidebar.open{ transform:translateX(0); }
+    .ft-sidebar-close{
+      display:flex; align-items:center; justify-content:center;
+      position:absolute; top:10px; right:10px; width:28px; height:28px;
+      background:transparent; border:none; color:var(--bg); cursor:pointer;
+    }
+    .ft-overlay.open{
+      display:block; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:60;
+    }
+    .ft-main{
+      width:100% !important; padding:16px !important; padding-top:64px !important;
+    }
+    .ft-responsive-grid{ grid-template-columns:1fr !important; }
   }
 `;
 
@@ -284,22 +317,54 @@ const ACTIVITY_MULT = {
 };
 
 /* ---------------------------------------------------------------------- */
-/* Storage helpers (persist across sessions via window.storage)           */
+/* Storage helpers (persist per-user via Supabase's kv_store table)       */
 /* ---------------------------------------------------------------------- */
+
+function notifyStoreError(action) {
+  try {
+    window.dispatchEvent(new CustomEvent("ft-store-error", { detail: { action } }));
+  } catch {}
+}
 
 async function storeGet(key, fallback = null) {
   try {
-    const r = await window.storage.get(key, false);
-    return r ? JSON.parse(r.value) : fallback;
-  } catch {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return fallback;
+    const { data, error } = await supabase
+      .from("kv_store")
+      .select("value")
+      .eq("user_id", session.user.id)
+      .eq("key", key)
+      .maybeSingle();
+    if (error) {
+      console.error("storage get failed", error);
+      notifyStoreError("load");
+      return fallback;
+    }
+    return data ? data.value : fallback;
+  } catch (e) {
+    console.error("storage get failed", e);
+    notifyStoreError("load");
     return fallback;
   }
 }
 async function storeSet(key, value) {
   try {
-    await window.storage.set(key, JSON.stringify(value), false);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const { error } = await supabase.from("kv_store").upsert({
+      user_id: session.user.id,
+      key,
+      value,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) {
+      console.error("storage set failed", error);
+      notifyStoreError("save");
+    }
   } catch (e) {
     console.error("storage set failed", e);
+    notifyStoreError("save");
   }
 }
 
@@ -401,9 +466,95 @@ function StreakStrip({ days }) {
 /* Login / Paywall                                                        */
 /* ---------------------------------------------------------------------- */
 
-function LoginScreen({ onLogin }) {
+function AuthScreen() {
+  const [mode, setMode] = useState("signin"); // "signin" | "signup" | "reset"
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [checkEmail, setCheckEmail] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+
+  const switchMode = (next) => {
+    setMode(next);
+    setError("");
+  };
+
+  const handleSubmit = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      if (mode === "signup") {
+        const { data, error: err } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: { data: { name: name.trim() } },
+        });
+        if (err) throw err;
+        if (!data.session) setCheckEmail(true);
+      } else if (mode === "reset") {
+        const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: window.location.origin,
+        });
+        if (err) throw err;
+        setResetSent(true);
+      } else {
+        const { error: err } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (err) throw err;
+      }
+    } catch (e) {
+      setError(e.message || "Something went wrong");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (checkEmail) {
+    return (
+      <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <div className="ft-card" style={{ maxWidth: 380, width: "100%", textAlign: "center" }}>
+          <CheckCircle2 size={22} style={{ marginBottom: 8 }} />
+          <h3 className="ft-display" style={{ marginTop: 0 }}>Check your email</h3>
+          <p style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+            We sent a confirmation link to <strong>{email}</strong>. Click it, then come back and sign in.
+          </p>
+          <button
+            className="ft-btn-outline ft-btn"
+            style={{ width: "100%", justifyContent: "center", marginTop: 8 }}
+            onClick={() => { setCheckEmail(false); switchMode("signin"); }}
+          >
+            Back to sign in
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (resetSent) {
+    return (
+      <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <div className="ft-card" style={{ maxWidth: 380, width: "100%", textAlign: "center" }}>
+          <CheckCircle2 size={22} style={{ marginBottom: 8 }} />
+          <h3 className="ft-display" style={{ marginTop: 0 }}>Check your email</h3>
+          <p style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+            We sent a password reset link to <strong>{email}</strong>. Click it to choose a new password.
+          </p>
+          <button
+            className="ft-btn-outline ft-btn"
+            style={{ width: "100%", justifyContent: "center", marginTop: 8 }}
+            onClick={() => { setResetSent(false); switchMode("signin"); }}
+          >
+            Back to sign in
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div className="ft-card" style={{ maxWidth: 380, width: "100%" }}>
@@ -412,28 +563,193 @@ function LoginScreen({ onLogin }) {
           <span style={{ fontSize: 21, fontWeight: 700, fontFamily: "Georgia, serif", letterSpacing: "0.03em", textTransform: "uppercase", color: "var(--ink)" }}>FIT DATA</span>
         </div>
         <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 0, marginBottom: 20 }}>
-          Sign in to track your training.
+          {mode === "signup" ? "Create an account to start tracking your training."
+            : mode === "reset" ? "Enter your email and we'll send you a reset link."
+            : "Sign in to track your training."}
         </p>
-        <div style={{ marginBottom: 14 }}>
-          <label className="ft-label">Name</label>
-          <input className="ft-input" placeholder="Jordan Ellis" value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div style={{ marginBottom: 20 }}>
+
+        {mode === "signup" && (
+          <div style={{ marginBottom: 14 }}>
+            <label className="ft-label">Name</label>
+            <input className="ft-input" placeholder="Jordan Ellis" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+        )}
+        <div style={{ marginBottom: mode === "reset" ? 20 : 14 }}>
           <label className="ft-label">Email</label>
-          <input className="ft-input" placeholder="jordan@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input className="ft-input" type="email" placeholder="jordan@example.com" value={email} onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && mode === "reset") handleSubmit(); }} />
         </div>
+        {mode !== "reset" && (
+          <div style={{ marginBottom: 8 }}>
+            <label className="ft-label">Password</label>
+            <input className="ft-input" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }} />
+          </div>
+        )}
+        {mode === "signin" && (
+          <p style={{ textAlign: "right", margin: "0 0 20px" }}>
+            <a href="#" onClick={(e) => { e.preventDefault(); switchMode("reset"); }} style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+              Forgot password?
+            </a>
+          </p>
+        )}
+        {mode === "signup" && <div style={{ marginBottom: 20 }} />}
+
+        {error && (
+          <p style={{ fontSize: 12, color: "var(--warn)", marginTop: -10, marginBottom: 16 }}>{error}</p>
+        )}
+
         <button
           className="ft-btn"
           style={{ width: "100%", justifyContent: "center" }}
-          disabled={!name.trim() || !email.trim()}
-          onClick={() => onLogin({ name: name.trim(), email: email.trim() })}
+          disabled={busy || !email.trim() || (mode !== "reset" && !password) || (mode === "signup" && !name.trim())}
+          onClick={handleSubmit}
         >
-          Continue <ChevronRight size={15} />
+          {busy ? "Please wait…" : mode === "signup" ? "Create account" : mode === "reset" ? "Send reset link" : "Sign in"} <ChevronRight size={15} />
         </button>
-        <p style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 14, marginBottom: 0 }}>
-          Demo sign-in — no password required. In production this screen would hand off to a real auth
-          provider (e.g. OAuth or email/password with hashed credentials on a server).
+
+        <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 16, marginBottom: 0, textAlign: "center" }}>
+          {mode === "signup" ? (
+            <>Already have an account?{" "}
+              <a href="#" onClick={(e) => { e.preventDefault(); switchMode("signin"); }} style={{ color: "var(--ink)" }}>Sign in</a>
+            </>
+          ) : mode === "reset" ? (
+            <>Remembered it?{" "}
+              <a href="#" onClick={(e) => { e.preventDefault(); switchMode("signin"); }} style={{ color: "var(--ink)" }}>Sign in</a>
+            </>
+          ) : (
+            <>No account yet?{" "}
+              <a href="#" onClick={(e) => { e.preventDefault(); switchMode("signup"); }} style={{ color: "var(--ink)" }}>Create one</a>
+            </>
+          )}
         </p>
+      </div>
+    </div>
+  );
+}
+
+function ResetPasswordScreen({ onDone }) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const handleSubmit = async () => {
+    setError("");
+    if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
+    if (password !== confirm) { setError("Passwords don't match."); return; }
+    setBusy(true);
+    const { error: err } = await supabase.auth.updateUser({ password });
+    setBusy(false);
+    if (err) { setError(err.message); return; }
+    setDone(true);
+  };
+
+  if (done) {
+    return (
+      <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <div className="ft-card" style={{ maxWidth: 380, width: "100%", textAlign: "center" }}>
+          <CheckCircle2 size={22} style={{ marginBottom: 8 }} />
+          <h3 className="ft-display" style={{ marginTop: 0 }}>Password updated</h3>
+          <p style={{ fontSize: 13, color: "var(--ink-soft)" }}>You can now continue using FIT DATA.</p>
+          <button className="ft-btn" style={{ width: "100%", justifyContent: "center", marginTop: 8 }} onClick={onDone}>
+            Continue <ChevronRight size={15} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div className="ft-card" style={{ maxWidth: 380, width: "100%" }}>
+        <h3 className="ft-display" style={{ marginTop: 0 }}>Set a new password</h3>
+        <div style={{ marginBottom: 14 }}>
+          <label className="ft-label">New password</label>
+          <input className="ft-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        </div>
+        <div style={{ marginBottom: 20 }}>
+          <label className="ft-label">Confirm password</label>
+          <input className="ft-input" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }} />
+        </div>
+        {error && <p style={{ fontSize: 12, color: "var(--warn)", marginTop: -10, marginBottom: 16 }}>{error}</p>}
+        <button
+          className="ft-btn"
+          style={{ width: "100%", justifyContent: "center" }}
+          disabled={busy || !password || !confirm}
+          onClick={handleSubmit}
+        >
+          {busy ? "Please wait…" : "Update password"} <ChevronRight size={15} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const TERMS_VERSION = "1.1";
+
+function TermsScreen({ onAccept, onDecline }) {
+  const [agreed, setAgreed] = useState(false);
+  return (
+    <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div className="ft-card" style={{ maxWidth: 560, width: "100%" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          <CheckCircle2 size={18} />
+          <span className="ft-display" style={{ fontSize: 18, fontWeight: 600 }}>Terms & Conditions</span>
+        </div>
+        <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 0, marginBottom: 14 }}>
+          Please read and accept before continuing to FIT DATA.
+        </p>
+
+        <div
+          style={{
+            maxHeight: 280, overflowY: "auto", border: "1px solid var(--line)", borderRadius: 6,
+            padding: 14, fontSize: 12.5, lineHeight: 1.55, color: "var(--ink-soft)", marginBottom: 16,
+          }}
+        >
+          <p><strong>1. Acceptance of terms.</strong> By creating an account and using FIT DATA ("the App"), you agree to be bound by these Terms &amp; Conditions and our Privacy Policy. If you do not agree, do not use the App.</p>
+
+          <p><strong>2. Purpose of data collection.</strong> The information you provide (profile details, goals, food/workout/step logs, body measurements) is collected and used for one purpose only: to store and track your own fitness data, for you, as the paying account holder. It is not used for any other purpose, and it is not shared with other users. We do not sell your personal data to any third party, and we do not share it with advertisers or data brokers.</p>
+
+          <p><strong>3. Who can access your data.</strong> No one besides you has access to your individual fitness data, other than the limited service providers described in section 4, strictly to the extent needed to operate the App (for example, our database host storing it securely, or our payment processor handling your subscription payment). No FIT DATA staff, other user, or unrelated third party can view your personal fitness records.</p>
+
+          <p><strong>4. Service providers.</strong> We use third-party service providers to operate the App — for example database hosting and payment processing. These providers only process your data to the extent necessary to provide that specific service, under confidentiality obligations, and never to sell or repurpose it. We do not store your full card details ourselves; card payments are handled directly by our payment processor.</p>
+
+          <p><strong>5. POPIA compliance.</strong> We process your personal information in accordance with South Africa's Protection of Personal Information Act, 2013 (POPIA). Processing is limited to the purpose described in section 2, on the lawful basis of your consent and the necessity of processing to perform our contract with you. You have the right to request access to, correction of, or deletion of your personal information, and to object to its processing, by contacting us using the details in section 11. We maintain reasonable technical and organisational safeguards to protect your information against loss, unauthorised access, and disclosure.</p>
+
+          <p><strong>6. Account &amp; subscription.</strong> Certain features require a paid subscription. Subscriptions renew automatically until cancelled. You may cancel at any time from within the App; cancellation stops future renewals and no further payments will be taken.</p>
+
+          <p><strong>7. Changes to these terms.</strong> We may update or modify these Terms &amp; Conditions, our Privacy Policy, or our pricing at any time and at our sole discretion, to reflect changes in our service, legal requirements, or business practices. We will make reasonable efforts to notify you of material changes. Continued use of the App after changes take effect constitutes acceptance of the revised terms.</p>
+
+          <p><strong>8. No medical advice.</strong> FIT DATA is a tracking tool, not a medical device. Content in the App is not medical advice; consult a qualified professional before starting any diet or exercise program.</p>
+
+          <p><strong>9. Termination.</strong> You may stop using the App and delete your account at any time. We may suspend or terminate accounts that violate these terms.</p>
+
+          <p><strong>10. Limitation of liability.</strong> The App is provided "as is" without warranties of any kind. To the maximum extent permitted by applicable law, we are not liable for indirect, incidental, or consequential damages arising from your use of the App.</p>
+
+          <p><strong>11. Governing law &amp; contact.</strong> These terms are governed by the laws of South Africa. Questions about these terms, your data, or requests under POPIA can be sent to the support address listed in the App.</p>
+        </div>
+
+        <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12.5, marginBottom: 18, cursor: "pointer" }}>
+          <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: 2 }} />
+          <span>I have read and agree to the Terms &amp; Conditions and Privacy Policy, including that these terms may change at any time.</span>
+        </label>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button className="ft-btn-outline ft-btn" style={{ flex: 1, justifyContent: "center" }} onClick={onDecline}>
+            Decline
+          </button>
+          <button
+            className="ft-btn"
+            style={{ flex: 1, justifyContent: "center" }}
+            disabled={!agreed}
+            onClick={onAccept}
+          >
+            Agree &amp; continue <ChevronRight size={15} />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -441,10 +757,24 @@ function LoginScreen({ onLogin }) {
 
 function PaywallScreen({ onSubscribe, onBack }) {
   const [plan, setPlan] = useState("monthly");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const plans = {
-    monthly: { label: "Monthly", price: "$9.99", cadence: "/month" },
-    annual: { label: "Annual", price: "$79.99", cadence: "/year", badge: "Save 33%" },
+    monthly: { label: "Monthly", price: "R99", cadence: "/month" },
+    annual: { label: "Annual", price: "R999", cadence: "/year", badge: "Save 16%" },
   };
+
+  const handleSubscribeClick = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      await onSubscribe(plan);
+    } catch (e) {
+      setError(e.message || "Couldn't start checkout. Please try again.");
+      setBusy(false);
+    }
+  };
+
   return (
     <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div className="ft-card" style={{ maxWidth: 420, width: "100%" }}>
@@ -455,7 +785,7 @@ function PaywallScreen({ onSubscribe, onBack }) {
         <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 0, marginBottom: 18 }}>
           A subscription unlocks goal tracking, food and workout logging, and progress charts.
         </p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
+        <div className="ft-responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
           {Object.entries(plans).map(([key, p]) => (
             <button
               key={key}
@@ -479,15 +809,17 @@ function PaywallScreen({ onSubscribe, onBack }) {
           <li>Food and workout logging</li>
           <li>Fitness test with progress history</li>
         </ul>
+        {error && (
+          <p style={{ fontSize: 12, color: "var(--warn)", marginTop: 0, marginBottom: 14 }}>{error}</p>
+        )}
         <div style={{ display: "flex", gap: 10 }}>
-          <button className="ft-btn-outline ft-btn" onClick={onBack}>Back</button>
-          <button className="ft-btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => onSubscribe(plan)}>
-            Subscribe <CheckCircle2 size={15} />
+          <button className="ft-btn-outline ft-btn" onClick={onBack} disabled={busy}>Back</button>
+          <button className="ft-btn" style={{ flex: 1, justifyContent: "center" }} onClick={handleSubscribeClick} disabled={busy}>
+            {busy ? "Redirecting to checkout…" : "Subscribe"} <CheckCircle2 size={15} />
           </button>
         </div>
         <p style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 14, marginBottom: 0 }}>
-          Demo checkout — no card is charged. A live version would call a payment
-          processor (e.g. Stripe Billing) from a server and verify the subscription with a webhook.
+          You'll be redirected to Paystack's secure checkout to enter your card details. We never see or store your card number.
         </p>
       </div>
     </div>
@@ -537,7 +869,7 @@ function MilestoneGoals({ milestones, addMilestone, toggleMilestone, removeMiles
         Date-specific goals like "run a marathon in September" or "hit 100kg squat by year end".
       </p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 10, marginBottom: 10 }}>
+      <div className="ft-responsive-grid" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 10, marginBottom: 10 }}>
         <div>
           <label className="ft-label">Goal</label>
           <input className="ft-input" placeholder="Run a marathon" value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -658,13 +990,13 @@ function ProfileScreen({ profile, setProfile, goals, setGoals, inbodyScans, addI
 
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+      <div className="ft-responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         <div className="ft-card">
           <h3 className="ft-display" style={{ marginTop: 0, fontSize: 16 }}>Your profile</h3>
           <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 0 }}>
             Used to calculate your suggested calorie and macro targets.
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="ft-responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {field("age", "Age")}
             {field("weightKg", "Weight (kg)")}
             {field("heightCm", "Height (cm)")}
@@ -854,7 +1186,7 @@ function GoalsScreen({ goals, setGoals, profile, milestones, addMilestone, toggl
 
   return (
     <>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+    <div className="ft-responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
       <div className="ft-card">
         <h3 className="ft-display" style={{ marginTop: 0, fontSize: 16 }}>Daily steps</h3>
         <label className="ft-label">Steps target</label>
@@ -962,7 +1294,7 @@ function FoodLogScreen({ date, setDate, entries, addEntry, removeEntry, goals, c
         <input className="ft-input" style={{ width: 170 }} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: 20 }}>
+      <div className="ft-responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: 20 }}>
         <div className="ft-card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
             <h3 className="ft-display" style={{ margin: 0, fontSize: 16 }}>Add food</h3>
@@ -1183,7 +1515,7 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
         <Calendar size={16} />
         <input className="ft-input" style={{ width: 170 }} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: 20 }}>
+      <div className="ft-responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: 20 }}>
         <div className="ft-card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
             <h3 className="ft-display" style={{ margin: 0, fontSize: 16 }}>Log workout</h3>
@@ -1418,7 +1750,7 @@ function LogStepsScreen({ date, setDate, stepsByDate, setSteps, stepsGoal }) {
         />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: 20 }}>
+      <div className="ft-responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: 20 }}>
         <div className="ft-card">
           <h3 className="ft-display" style={{ marginTop: 0, fontSize: 16 }}>Enter steps</h3>
           <div style={{ marginBottom: 14 }}>
@@ -1591,7 +1923,7 @@ function InBodyBlock({ scans, addScan, removeScan }) {
           Log your body composition scan results to track how they change over time.
         </p>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div className="ft-responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           <div className="ft-card">
             <div>
               <label className="ft-label">Weight (kg)</label>
@@ -1867,7 +2199,7 @@ function FitnessTestScreen({ exercises, addExercise, removeExercise, results, ad
           </p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div className="ft-responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           {exercises.map((ex) => (
             <FitnessExerciseCard
               key={ex.id}
@@ -2271,7 +2603,7 @@ function ReportPanel({ rawSeries, goals }) {
         </div>
       </div>
 
-      <div ref={chartsRef} style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+      <div ref={chartsRef} className="ft-responsive-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
         <ReportChart title="Calories" data={buckets} dataKey="calAvg" target={goals.calories} unit=" kcal" colorFn={(d) => targetStatus3(d.calAvg, goals.calories, d.loggedDays).color} />
         <ReportChart title="Protein" data={buckets} dataKey="pAvg" target={goals.protein} unit="g" colorFn={(d) => targetStatus3(d.pAvg, goals.protein, d.loggedDays).color} />
         <ReportChart title="Carbs" data={buckets} dataKey="cAvg" target={goals.carb} unit="g" colorFn={(d) => targetStatus3(d.cAvg, goals.carb, d.loggedDays).color} />
@@ -3353,9 +3685,14 @@ const TABS = [
 export default function App() {
   useGoogleFonts();
 
+  const [session, setSession] = useState(undefined); // undefined = checking, null = signed out
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
+  const [saveError, setSaveError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [profile, setProfileState] = useState(null);
   const [subscribed, setSubscribed] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [goals, setGoalsState] = useState({ calories: 2200, protein: 150, carb: 220, fat: 70, targetWeightKg: 75, workoutsPerWeek: 4, workoutsPerMonth: 0, steps: 8000, trainingDates: [] });
   const [tab, setTab] = useState("dashboard");
   const [foodDate, setFoodDate] = useState(todayStr());
@@ -3373,11 +3710,68 @@ export default function App() {
   const [milestones, setMilestones] = useState([]);
   const [customFoods, setCustomFoods] = useState([]);
 
-  // initial load
+  // track the Supabase auth session
   useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: listener } = supabase.auth.onAuthStateChange((event, s) => {
+      setSession(s);
+      if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  // surface storage read/write failures that storeGet/storeSet would otherwise swallow
+  useEffect(() => {
+    const handler = (e) => setSaveError(e.detail);
+    window.addEventListener("ft-store-error", handler);
+    return () => window.removeEventListener("ft-store-error", handler);
+  }, []);
+
+  useEffect(() => {
+    if (!saveError) return;
+    const t = setTimeout(() => setSaveError(null), 6000);
+    return () => clearTimeout(t);
+  }, [saveError]);
+
+  const resetLocalState = () => {
+    setProfileState(null);
+    setSubscribed(false);
+    setTermsAccepted(false);
+    setGoalsState({ calories: 2200, protein: 150, carb: 220, fat: 70, targetWeightKg: 75, workoutsPerWeek: 4, workoutsPerMonth: 0, steps: 8000, trainingDates: [] });
+    setFoodByDate({});
+    setWorkoutByDate({});
+    setStepsByDate({});
+    setTestExercises([]);
+    setTestResults({});
+    setInbodyScans([]);
+    setMeasurements([]);
+    setMilestones([]);
+    setCustomFoods([]);
+    setCheckInShownDate(null);
+  };
+
+  // load this user's data once we know who's signed in
+  useEffect(() => {
+    if (session === undefined) return; // still checking for an existing session
+    if (!session) {
+      resetLocalState();
+      setLoading(false);
+      return;
+    }
     (async () => {
-      const p = await storeGet("profile", null);
-      const sub = await storeGet("subscribed", false);
+      setLoading(true);
+      let p = await storeGet("profile", null);
+      if (!p) {
+        const meta = session.user.user_metadata || {};
+        p = { name: meta.name || session.user.email.split("@")[0], email: session.user.email, startWeightKg: undefined };
+        await storeSet("profile", p);
+      }
+      const { data: subRow } = await supabase
+        .from("subscriptions")
+        .select("status")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      const tv = await storeGet("terms-version", null);
       const g = await storeGet("goals", null);
       const te = await storeGet("test-exercises", []);
       const tr = await storeGet("test-results", {});
@@ -3387,8 +3781,9 @@ export default function App() {
       const cf = await storeGet("custom-foods", []);
       const cid = await storeGet("checkin-shown-date", null);
       if (cid) setCheckInShownDate(cid);
-      if (p) setProfileState(p);
-      if (sub) setSubscribed(true);
+      setProfileState(p);
+      if (subRow?.status === "active") setSubscribed(true);
+      if (tv === TERMS_VERSION) setTermsAccepted(true);
       if (g) setGoalsState(g);
       if (te) setTestExercises(te);
       if (tr) setTestResults(tr);
@@ -3406,7 +3801,7 @@ export default function App() {
       setStepsByDate(sMap || {});
       setLoading(false);
     })();
-  }, []);
+  }, [session]);
 
   // check every minute — if it's 8pm or later local time and today's check-in hasn't shown yet, pop it up.
   // (only fires while the app is open; a browser tab can't wake itself up at an exact time when closed)
@@ -3436,15 +3831,30 @@ export default function App() {
     storeSet("goals", g);
   }, []);
 
-  const handleLogin = (p) => {
-    const withStart = { ...p, startWeightKg: p.weightKg };
-    setProfileState(withStart);
-    storeSet("profile", withStart);
+  const handleSubscribe = async (plan) => {
+    const { data, error } = await supabase.functions.invoke("create-paystack-payment", { body: { plan } });
+    if (error || !data?.authorization_url) {
+      throw new Error(data?.error || error?.message || "Couldn't start checkout. Please try again.");
+    }
+    window.location.href = data.authorization_url;
   };
 
-  const handleSubscribe = () => {
-    setSubscribed(true);
-    storeSet("subscribed", true);
+  const handleCancelSubscription = async () => {
+    if (!window.confirm("Cancel your subscription? You'll lose access to logging and tracking immediately.")) return;
+    const { data, error } = await supabase.functions.invoke("cancel-paystack-subscription");
+    if (error || !data?.ok) {
+      window.alert(data?.error || error?.message || "Couldn't cancel right now. Please try again.");
+      return;
+    }
+    setSubscribed(false);
+  };
+
+  const handleAcceptTerms = () => {
+    setTermsAccepted(true);
+    storeSet("terms-version", TERMS_VERSION);
+    if (session) {
+      supabase.from("terms_acceptance").insert({ user_id: session.user.id, version: TERMS_VERSION });
+    }
   };
 
   const addFoodEntry = (date, entry) => {
@@ -3570,8 +3980,8 @@ export default function App() {
   };
 
   const logout = () => {
-    setProfileState(null);
-    setSubscribed(false);
+    supabase.auth.signOut();
+    resetLocalState();
   };
 
   const streakDays = Array.from({ length: 14 }, (_, i) => {
@@ -3579,7 +3989,16 @@ export default function App() {
     return { date: d, logged: !!(foodByDate[d]?.length) };
   });
 
-  if (loading) {
+  if (passwordRecovery) {
+    return (
+      <div className="ft-root">
+        <style>{TOKENS}</style>
+        <ResetPasswordScreen onDone={() => setPasswordRecovery(false)} />
+      </div>
+    );
+  }
+
+  if (session === undefined || loading) {
     return (
       <div className="ft-root" style={{ padding: 40, textAlign: "center", color: "var(--ink-soft)" }}>
         <style>{TOKENS}</style>
@@ -3588,11 +4007,20 @@ export default function App() {
     );
   }
 
-  if (!profile) {
+  if (!session || !profile) {
     return (
       <div className="ft-root">
         <style>{TOKENS}</style>
-        <LoginScreen onLogin={handleLogin} />
+        <AuthScreen />
+      </div>
+    );
+  }
+
+  if (!termsAccepted) {
+    return (
+      <div className="ft-root">
+        <style>{TOKENS}</style>
+        <TermsScreen onAccept={handleAcceptTerms} onDecline={logout} />
       </div>
     );
   }
@@ -3609,8 +4037,40 @@ export default function App() {
   return (
     <div className="ft-root">
       <style>{TOKENS}</style>
+      {saveError && (
+        <div
+          className="no-print"
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, zIndex: 90,
+            background: "var(--warn)", color: "#fff", padding: "10px 16px",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+            fontSize: 13, fontFamily: "Inter, sans-serif",
+          }}
+        >
+          <AlertTriangle size={15} />
+          <span>
+            {saveError.action === "save"
+              ? "Couldn't save your last change — check your connection and try again."
+              : "Couldn't load your data — check your connection and try again."}
+          </span>
+          <button
+            onClick={() => setSaveError(null)}
+            aria-label="Dismiss"
+            style={{ background: "transparent", border: "none", color: "#fff", cursor: "pointer", display: "flex", marginLeft: 4 }}
+          >
+            <X size={15} />
+          </button>
+        </div>
+      )}
       <div style={{ display: "flex", minHeight: 700 }}>
-        <div className="no-print" style={{ width: 200, background: "var(--ink)", padding: "20px 14px", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+        <button className="ft-hamburger no-print" onClick={() => setMobileNavOpen(true)} aria-label="Open menu">
+          <Menu size={20} />
+        </button>
+        <div className={`ft-overlay no-print ${mobileNavOpen ? "open" : ""}`} onClick={() => setMobileNavOpen(false)} />
+        <div className={`no-print ft-sidebar ${mobileNavOpen ? "open" : ""}`} style={{ width: 200, background: "var(--ink)", padding: "20px 14px", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+          <button className="ft-sidebar-close" onClick={() => setMobileNavOpen(false)} aria-label="Close menu">
+            <X size={16} />
+          </button>
           <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--bg)", opacity: .85, fontSize: 13, marginBottom: 16, paddingLeft: 8 }}>
             <User size={14} /> {profile.name}
           </div>
@@ -3620,14 +4080,17 @@ export default function App() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
             {TABS.map((t) => (
-              <button key={t.id} className={`ft-tab ${tab === t.id ? "active" : ""}`} onClick={() => setTab(t.id)}>
+              <button key={t.id} className={`ft-tab ${tab === t.id ? "active" : ""}`} onClick={() => { setTab(t.id); setMobileNavOpen(false); }}>
                 <t.icon size={16} /> {t.label}
               </button>
             ))}
           </div>
           <div style={{ borderTop: "1px solid rgba(255,255,255,.15)", paddingTop: 14, marginTop: 14 }}>
-            <button className="ft-tab" onClick={() => setShowCheckIn(true)}>
+            <button className="ft-tab" onClick={() => { setShowCheckIn(true); setMobileNavOpen(false); }}>
               <Calendar size={16} /> Evening check-in
+            </button>
+            <button className="ft-tab" onClick={handleCancelSubscription} style={{ marginTop: 10 }}>
+              <XCircle size={16} /> Cancel subscription
             </button>
             <button className="ft-tab" onClick={logout} style={{ marginTop: 10 }}>
               <LogOut size={16} /> Sign out
@@ -3635,7 +4098,7 @@ export default function App() {
           </div>
         </div>
 
-        <div style={{ flex: 1, padding: 28, overflow: "auto" }}>
+        <div className="ft-main" style={{ flex: 1, padding: 28, overflow: "auto" }}>
           {tab === "profile" && (
             <ProfileScreen
               profile={profile} setProfile={setProfile}
