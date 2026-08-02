@@ -1406,7 +1406,7 @@ function FoodLogScreen({ date, setDate, entries, addEntry, removeEntry, goals, c
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 500 }}>{e.food}</div>
                   <div className="ft-mono" style={{ fontSize: 12, color: "var(--ink-soft)" }}>
-                    {e.grams}g · {e.cal} kcal · P{e.p} C{e.c} F{e.f}
+                    {e.grams}g · <span style={{ color: "var(--work)" }}>{e.cal} kcal</span> · <span style={{ color: "var(--work)" }}>P</span>{e.p} <span style={{ color: "var(--work)" }}>C</span>{e.c} <span style={{ color: "var(--work)" }}>F</span>{e.f}
                   </div>
                 </div>
                 <button className="ft-btn-outline ft-btn" style={{ padding: 6 }} onClick={() => removeEntry(e.id)} aria-label="Remove entry">
@@ -1434,17 +1434,22 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
 
   const [showCustom, setShowCustom] = useState(false);
   const [customExercises, setCustomExercises] = useState([
-    { id: "e1", name: "", reps: 10, restSec: 60, weight: 20, timeMin: 5 },
+    { id: "e1", name: "", reps: "", restSec: "", weight: "", timeMin: "" },
   ]);
   const [customEffort, setCustomEffort] = useState(70);
   const [repeatSelection, setRepeatSelection] = useState({});
+
+  const [showQuick, setShowQuick] = useState(false);
+  const [quickName, setQuickName] = useState("");
+  const [quickCal, setQuickCal] = useState("");
+  const [quickEffort, setQuickEffort] = useState(70);
 
   const toggleRepeatSelect = (id) => {
     setRepeatSelection((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const addExerciseRow = () => {
-    setCustomExercises((prev) => [...prev, { id: `e${Date.now()}`, name: "", reps: 10, restSec: 60, weight: 20, timeMin: 5 }]);
+    setCustomExercises((prev) => [...prev, { id: `e${Date.now()}`, name: "", reps: "", restSec: "", weight: "", timeMin: "" }]);
   };
   const repeatExercises = () => {
     setCustomExercises((prev) => {
@@ -1476,11 +1481,33 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
       calsBurned,
       effort: Number(customEffort),
       points,
-      exercises: valid.map((ex) => ({ name: ex.name.trim(), reps: Number(ex.reps), restSec: Number(ex.restSec), weight: Number(ex.weight), timeMin: Number(ex.timeMin) })),
+      exercises: valid.map((ex) => {
+        const entry = { name: ex.name.trim() };
+        if (ex.reps !== "" && ex.reps != null) entry.reps = Number(ex.reps);
+        if (ex.timeMin !== "" && ex.timeMin != null) entry.timeMin = Number(ex.timeMin);
+        if (ex.weight !== "" && ex.weight != null) entry.weight = Number(ex.weight);
+        if (ex.restSec !== "" && ex.restSec != null) entry.restSec = Number(ex.restSec);
+        return entry;
+      }),
     });
-    setCustomExercises([{ id: `e${Date.now()}`, name: "", reps: 10, restSec: 60, weight: 20, timeMin: 5 }]);
+    setCustomExercises([{ id: `e${Date.now()}`, name: "", reps: "", restSec: "", weight: "", timeMin: "" }]);
     setCustomEffort(70);
     setShowCustom(false);
+  };
+
+  const handleAddQuick = () => {
+    if (!quickName.trim() || quickCal === "") return;
+    addEntry({
+      id: `${Date.now()}`,
+      type: quickName.trim(),
+      duration: 0,
+      calsBurned: Number(quickCal),
+      effort: Number(quickEffort),
+    });
+    setQuickName("");
+    setQuickCal("");
+    setQuickEffort(70);
+    setShowQuick(false);
   };
 
   const selectedType = WORKOUT_TYPES.find((t) => t.name === type);
@@ -1517,12 +1544,48 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
       </div>
       <div className="ft-responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: 20 }}>
         <div className="ft-card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4, flexWrap: "wrap", gap: 8 }}>
             <h3 className="ft-display" style={{ margin: 0, fontSize: 16 }}>Log workout</h3>
-            <button className="ft-btn-outline ft-btn" style={{ fontSize: 12, padding: "6px 10px" }} onClick={() => setShowCustom((s) => !s)}>
-              <Plus size={13} /> Custom workout
-            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="ft-btn-outline ft-btn" style={{ fontSize: 12, padding: "6px 10px" }} onClick={() => { setShowQuick(false); setShowCustom((s) => !s); }}>
+                <Plus size={13} /> Custom workout
+              </button>
+              <button className="ft-btn-outline ft-btn" style={{ fontSize: 12, padding: "6px 10px" }} onClick={() => { setShowCustom(false); setShowQuick((s) => !s); }}>
+                <Flame size={13} /> Quick log
+              </button>
+            </div>
           </div>
+
+          {showQuick && (
+            <div className="ft-card" style={{ background: "var(--bg)", padding: 12, marginTop: 10, marginBottom: 14 }}>
+              <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "0 0 10px" }}>
+                Didn't track the exact workout? Just log a name and the calories you burned.
+              </p>
+              <div style={{ marginBottom: 10 }}>
+                <label className="ft-label">Workout name</label>
+                <input className="ft-input" placeholder="e.g. CrossFit" value={quickName} onChange={(e) => setQuickName(e.target.value)} />
+              </div>
+              <div style={{ marginBottom: 10 }}>
+                <label className="ft-label">Calories burned</label>
+                <input className="ft-input" type="number" placeholder="e.g. 400" value={quickCal} onChange={(e) => setQuickCal(e.target.value)} />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label className="ft-label">Effort level — {quickEffort}%</label>
+                <input
+                  type="range" min="0" max="100" step="5" value={quickEffort}
+                  onChange={(e) => setQuickEffort(e.target.value)}
+                  style={{ width: "100%", accentColor: "var(--work)" }}
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--ink-soft)" }}>
+                  <span>Easy</span><span>All-out</span>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="ft-btn-outline ft-btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => setShowQuick(false)}>Cancel</button>
+                <button className="ft-btn" style={{ flex: 1, justifyContent: "center" }} disabled={!quickName.trim() || quickCal === ""} onClick={handleAddQuick}>Save workout</button>
+              </div>
+            </div>
+          )}
 
           {showCustom && (
             <div className="ft-card" style={{ background: "var(--bg)", padding: 12, marginTop: 10, marginBottom: 14 }}>
@@ -1617,7 +1680,7 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
             </div>
           )}
 
-          <div style={{ marginTop: showCustom ? 0 : 14 }}>
+          <div style={{ marginTop: showCustom || showQuick ? 0 : 14 }}>
             <label className="ft-label">Type</label>
             <select className="ft-select" value={type} onChange={(e) => setType(e.target.value)}>
               {WORKOUT_TYPES.map((t) => <option key={t.name} value={t.name}>{t.name}</option>)}
@@ -1677,7 +1740,7 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
                   title: "Workout Log", subtitle: fmtShort(date),
                   rows: [
                     { label: "Total", value: `${entries.reduce((s, e) => s + e.duration, 0)} min · ${entries.reduce((s, e) => s + e.calsBurned, 0)} kcal` },
-                    ...entries.map((e) => ({ label: e.type, value: `${e.duration} min · ${e.calsBurned} kcal` })),
+                    ...entries.map((e) => ({ label: e.type, value: `${e.duration ? `${e.duration} min · ` : ""}${e.calsBurned} kcal` })),
                   ],
                 })}
                 filename={`workout-log-${date}.png`}
@@ -1693,16 +1756,23 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, fontWeight: 500 }}>{e.type}</div>
                   <div className="ft-mono" style={{ fontSize: 12, color: "var(--ink-soft)" }}>
-                    {e.distanceKm ? `${e.distanceKm} km · ` : ""}{e.duration} min · {e.calsBurned} kcal
-                    {e.effort != null && ` · ${e.effort}% effort`}
+                    {e.distanceKm ? `${e.distanceKm} km · ` : ""}{e.duration ? `${e.duration} min · ` : ""}{e.calsBurned} kcal
+                    {e.effort != null && <> · <span style={{ color: "var(--work)" }}>{e.effort}% effort</span></>}
                   </div>
                   {e.exercises && (
                     <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 2 }}>
-                      {e.exercises.map((ex, i) => (
-                        <div key={i} className="ft-mono" style={{ fontSize: 11, color: "var(--ink-soft)" }}>
-                          {ex.name} — {ex.reps} reps · {ex.timeMin} min · {ex.weight}kg · rest {ex.restSec}s
-                        </div>
-                      ))}
+                      {e.exercises.map((ex, i) => {
+                        const parts = [];
+                        if (ex.reps != null) parts.push(`${ex.reps} reps`);
+                        if (ex.timeMin != null) parts.push(`${ex.timeMin} min`);
+                        if (ex.weight != null) parts.push(`${ex.weight}kg`);
+                        if (ex.restSec != null) parts.push(`rest ${ex.restSec}s`);
+                        return (
+                          <div key={i} className="ft-mono" style={{ fontSize: 11, color: "var(--ink-soft)" }}>
+                            {ex.name}{parts.length > 0 ? ` — ${parts.join(" · ")}` : ""}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -3479,7 +3549,7 @@ function DailyReportScreen({ foodByDate, workoutByDate, stepsByDate, goals, mile
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {workouts.map((w) => (
                     <div key={w.id} style={{ fontSize: 12, color: "var(--ink-soft)" }}>
-                      <span style={{ color: "var(--ink)", fontWeight: 500 }}>{w.type}</span> — {w.distanceKm ? `${w.distanceKm} km · ` : ""}{w.duration} min · {w.calsBurned} kcal{w.effort != null ? ` · ${w.effort}% effort` : ""}
+                      <span style={{ color: "var(--ink)", fontWeight: 500 }}>{w.type}</span> — {w.distanceKm ? `${w.distanceKm} km · ` : ""}{w.duration} min · {w.calsBurned} kcal{w.effort != null && <> · <span style={{ color: "var(--work)" }}>{w.effort}% effort</span></>}
                     </div>
                   ))}
                 </div>
