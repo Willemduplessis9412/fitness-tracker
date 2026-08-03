@@ -1434,7 +1434,7 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
 
   const [showCustom, setShowCustom] = useState(false);
   const [customExercises, setCustomExercises] = useState([
-    { id: "e1", name: "", reps: "", restSec: "", weight: "", timeMin: "" },
+    { id: "e1", name: "", reps: "", restSec: "", weight: "", timeMin: "", timeSec: "" },
   ]);
   const [customEffort, setCustomEffort] = useState(70);
   const [repeatSelection, setRepeatSelection] = useState({});
@@ -1449,7 +1449,7 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
   };
 
   const addExerciseRow = () => {
-    setCustomExercises((prev) => [...prev, { id: `e${Date.now()}`, name: "", reps: "", restSec: "", weight: "", timeMin: "" }]);
+    setCustomExercises((prev) => [...prev, { id: `e${Date.now()}`, name: "", reps: "", restSec: "", weight: "", timeMin: "", timeSec: "" }]);
   };
   const repeatExercises = () => {
     setCustomExercises((prev) => {
@@ -1469,7 +1469,7 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
   const handleAddCustom = () => {
     const valid = customExercises.filter((ex) => ex.name.trim());
     if (valid.length === 0) return;
-    const totalDuration = valid.reduce((s, ex) => s + (Number(ex.timeMin) || 0), 0);
+    const totalDuration = valid.reduce((s, ex) => s + (Number(ex.timeMin) || 0) + (Number(ex.timeSec) || 0) / 60, 0);
     // strength training MET (5) as the base, scaled by effort like other workouts
     const baseCal = 5 * (weightKg || 75) * (totalDuration / 60);
     const calsBurned = Math.round(baseCal * (Number(customEffort) / 100));
@@ -1477,7 +1477,7 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
     addEntry({
       id: `${Date.now()}`,
       type: `Custom workout (${valid.length} exercise${valid.length > 1 ? "s" : ""})`,
-      duration: totalDuration,
+      duration: Math.round(totalDuration),
       calsBurned,
       effort: Number(customEffort),
       points,
@@ -1485,12 +1485,13 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
         const entry = { name: ex.name.trim() };
         if (ex.reps !== "" && ex.reps != null) entry.reps = Number(ex.reps);
         if (ex.timeMin !== "" && ex.timeMin != null) entry.timeMin = Number(ex.timeMin);
+        if (ex.timeSec !== "" && ex.timeSec != null) entry.timeSec = Number(ex.timeSec);
         if (ex.weight !== "" && ex.weight != null) entry.weight = Number(ex.weight);
         if (ex.restSec !== "" && ex.restSec != null) entry.restSec = Number(ex.restSec);
         return entry;
       }),
     });
-    setCustomExercises([{ id: `e${Date.now()}`, name: "", reps: "", restSec: "", weight: "", timeMin: "" }]);
+    setCustomExercises([{ id: `e${Date.now()}`, name: "", reps: "", restSec: "", weight: "", timeMin: "", timeSec: "" }]);
     setCustomEffort(70);
     setShowCustom(false);
   };
@@ -1593,12 +1594,12 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
                 Build your own workout — add as many exercises as you like.
               </p>
               <div style={{ overflowX: "auto", marginBottom: 10 }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 480 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 540 }}>
                   <thead>
                     <tr style={{ borderBottom: "1px solid var(--line-strong)" }}>
                       <th style={{ textAlign: "left", padding: "4px 6px", fontSize: 10, textTransform: "uppercase", color: "var(--ink-soft)", fontWeight: 500 }}>Exercise</th>
                       <th style={{ textAlign: "left", padding: "4px 6px", fontSize: 10, textTransform: "uppercase", color: "var(--ink-soft)", fontWeight: 500, width: 70 }}>Reps</th>
-                      <th style={{ textAlign: "left", padding: "4px 6px", fontSize: 10, textTransform: "uppercase", color: "var(--ink-soft)", fontWeight: 500, width: 80 }}>Time (min)</th>
+                      <th style={{ textAlign: "left", padding: "4px 6px", fontSize: 10, textTransform: "uppercase", color: "var(--ink-soft)", fontWeight: 500, width: 110 }}>Time (min : sec)</th>
                       <th style={{ textAlign: "left", padding: "4px 6px", fontSize: 10, textTransform: "uppercase", color: "var(--ink-soft)", fontWeight: 500, width: 80 }}>Weight (kg)</th>
                       <th style={{ textAlign: "left", padding: "4px 6px", fontSize: 10, textTransform: "uppercase", color: "var(--ink-soft)", fontWeight: 500, width: 80 }}>Rest (s)</th>
                       <th style={{ width: 30 }}></th>
@@ -1614,7 +1615,10 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
                           <input className="ft-input" type="number" value={ex.reps} onChange={(e) => updateExerciseRow(ex.id, "reps", e.target.value)} />
                         </td>
                         <td style={{ padding: "4px 6px" }}>
-                          <input className="ft-input" type="number" value={ex.timeMin} onChange={(e) => updateExerciseRow(ex.id, "timeMin", e.target.value)} />
+                          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                            <input className="ft-input" type="number" placeholder="min" style={{ width: 52 }} value={ex.timeMin} onChange={(e) => updateExerciseRow(ex.id, "timeMin", e.target.value)} />
+                            <input className="ft-input" type="number" placeholder="sec" style={{ width: 52 }} value={ex.timeSec} onChange={(e) => updateExerciseRow(ex.id, "timeSec", e.target.value)} />
+                          </div>
                         </td>
                         <td style={{ padding: "4px 6px" }}>
                           <input className="ft-input" type="number" value={ex.weight} onChange={(e) => updateExerciseRow(ex.id, "weight", e.target.value)} />
@@ -1658,7 +1662,14 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
               </button>
 
               <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "0 0 10px" }}>
-                Total duration: <span className="ft-mono" style={{ color: "var(--ink)" }}>{customExercises.reduce((s, ex) => s + (Number(ex.timeMin) || 0), 0)} min</span> (summed from each exercise's time)
+                Total duration: <span className="ft-mono" style={{ color: "var(--ink)" }}>
+                  {(() => {
+                    const totalSec = Math.round(customExercises.reduce((s, ex) => s + (Number(ex.timeMin) || 0) * 60 + (Number(ex.timeSec) || 0), 0));
+                    const m = Math.floor(totalSec / 60);
+                    const s = totalSec % 60;
+                    return s > 0 ? `${m}m ${s}s` : `${m} min`;
+                  })()}
+                </span> (summed from each exercise's time)
               </p>
 
               <div style={{ marginBottom: 10 }}>
@@ -1764,7 +1775,9 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
                       {e.exercises.map((ex, i) => {
                         const parts = [];
                         if (ex.reps != null) parts.push(`${ex.reps} reps`);
-                        if (ex.timeMin != null) parts.push(`${ex.timeMin} min`);
+                        if (ex.timeMin != null && ex.timeSec != null) parts.push(`${ex.timeMin}m ${ex.timeSec}s`);
+                        else if (ex.timeMin != null) parts.push(`${ex.timeMin} min`);
+                        else if (ex.timeSec != null) parts.push(`${ex.timeSec} sec`);
                         if (ex.weight != null) parts.push(`${ex.weight}kg`);
                         if (ex.restSec != null) parts.push(`rest ${ex.restSec}s`);
                         return (
@@ -2807,7 +2820,7 @@ function ScheduleStrip({ foodByDate, workoutByDate, stepsByDate, goals, mileston
           })}
         </div>
       ) : (
-        <div style={{ padding: "10px 14px 14px" }}>
+        <div style={{ padding: "10px 14px 14px", maxWidth: 360, margin: "0 auto" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <button className="ft-btn-outline ft-btn" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => setCalMonth(new Date(year, month - 1, 1))}>‹</button>
             <span className="ft-display" style={{ fontSize: 13, fontWeight: 600 }}>
@@ -2846,7 +2859,7 @@ function ScheduleStrip({ foodByDate, workoutByDate, stepsByDate, goals, mileston
                 >
                   {d}
                   {dayMilestones.map((ms) => (
-                    <span key={ms.id} style={{ fontSize: 16, fontWeight: 600, color: active ? "#FFB4A3" : "var(--warn)", lineHeight: 1.15, maxWidth: "95%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span key={ms.id} style={{ fontSize: 7, fontWeight: 700, color: active ? "#FFB4A3" : "var(--warn)", lineHeight: 1.1, maxWidth: "92%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {ms.title}
                     </span>
                   ))}
