@@ -117,179 +117,179 @@ function useGoogleFonts() {
 // per 100g: calories, protein(g), carbs(g), fat(g). Grouped by category for the search/select UI.
 const FOOD_DB = [
   // Proteins — meat, poultry, seafood, eggs
-  { cat: "Proteins", name: "Chicken breast, cooked", cal: 165, p: 31, c: 0, f: 3.6 },
-  { cat: "Proteins", name: "Chicken thigh, cooked", cal: 209, p: 26, c: 0, f: 10.9 },
-  { cat: "Proteins", name: "Chicken drumstick, cooked", cal: 172, p: 28, c: 0, f: 5.7 },
-  { cat: "Proteins", name: "Turkey breast, cooked", cal: 135, p: 30, c: 0, f: 1 },
-  { cat: "Proteins", name: "Ground beef 90/10, cooked", cal: 176, p: 20, c: 0, f: 10 },
-  { cat: "Proteins", name: "Ground beef 80/20, cooked", cal: 254, p: 17, c: 0, f: 20 },
-  { cat: "Proteins", name: "Beef steak, sirloin, cooked", cal: 183, p: 26, c: 0, f: 8 },
-  { cat: "Proteins", name: "Beef mince, lean, cooked", cal: 215, p: 26, c: 0, f: 12 },
-  { cat: "Proteins", name: "Pork chop, cooked", cal: 231, p: 26, c: 0, f: 14 },
-  { cat: "Proteins", name: "Bacon, cooked", cal: 541, p: 37, c: 1.4, f: 42 },
-  { cat: "Proteins", name: "Ham, sliced", cal: 145, p: 21, c: 1.5, f: 5.5 },
-  { cat: "Proteins", name: "Lamb chop, cooked", cal: 294, p: 25, c: 0, f: 21 },
-  { cat: "Proteins", name: "Boerewors, cooked", cal: 290, p: 17, c: 1.5, f: 24 },
-  { cat: "Proteins", name: "Biltong", cal: 265, p: 50, c: 2, f: 5 },
-  { cat: "Proteins", name: "Droëwors", cal: 320, p: 45, c: 2, f: 15 },
-  { cat: "Proteins", name: "Salmon, cooked", cal: 208, p: 20, c: 0, f: 13 },
-  { cat: "Proteins", name: "Tuna, canned in water", cal: 116, p: 26, c: 0, f: 0.8 },
-  { cat: "Proteins", name: "Tuna, canned in oil", cal: 198, p: 25, c: 0, f: 10 },
-  { cat: "Proteins", name: "Cod, cooked", cal: 105, p: 23, c: 0, f: 0.9 },
-  { cat: "Proteins", name: "Hake, cooked", cal: 90, p: 19, c: 0, f: 1 },
-  { cat: "Proteins", name: "Tilapia, cooked", cal: 128, p: 26, c: 0, f: 2.7 },
-  { cat: "Proteins", name: "Shrimp / prawns, cooked", cal: 99, p: 24, c: 0.2, f: 0.3 },
-  { cat: "Proteins", name: "Sardines, canned", cal: 208, p: 25, c: 0, f: 11 },
-  { cat: "Proteins", name: "Eggs, whole", cal: 155, p: 13, c: 1.1, f: 11 },
-  { cat: "Proteins", name: "Egg whites", cal: 52, p: 11, c: 0.7, f: 0.2 },
+  { cat: "Proteins", name: "Chicken breast, cooked", cal: 165, p: 31, c: 0, f: 3.6, serving: 150 },
+  { cat: "Proteins", name: "Chicken thigh, cooked", cal: 209, p: 26, c: 0, f: 10.9, serving: 100 },
+  { cat: "Proteins", name: "Chicken drumstick, cooked", cal: 172, p: 28, c: 0, f: 5.7, serving: 60 },
+  { cat: "Proteins", name: "Turkey breast, cooked", cal: 135, p: 30, c: 0, f: 1, serving: 100 },
+  { cat: "Proteins", name: "Ground beef 90/10, cooked", cal: 176, p: 20, c: 0, f: 10, serving: 100 },
+  { cat: "Proteins", name: "Ground beef 80/20, cooked", cal: 254, p: 17, c: 0, f: 20, serving: 100 },
+  { cat: "Proteins", name: "Beef steak, sirloin, cooked", cal: 183, p: 26, c: 0, f: 8, serving: 200 },
+  { cat: "Proteins", name: "Beef mince, lean, cooked", cal: 215, p: 26, c: 0, f: 12, serving: 100 },
+  { cat: "Proteins", name: "Pork chop, cooked", cal: 231, p: 26, c: 0, f: 14, serving: 150 },
+  { cat: "Proteins", name: "Bacon, cooked", cal: 541, p: 37, c: 1.4, f: 42, serving: 30 },
+  { cat: "Proteins", name: "Ham, sliced", cal: 145, p: 21, c: 1.5, f: 5.5, serving: 30 },
+  { cat: "Proteins", name: "Lamb chop, cooked", cal: 294, p: 25, c: 0, f: 21, serving: 100 },
+  { cat: "Proteins", name: "Boerewors, cooked", cal: 290, p: 17, c: 1.5, f: 24, serving: 100 },
+  { cat: "Proteins", name: "Biltong", cal: 265, p: 50, c: 2, f: 5, serving: 30 },
+  { cat: "Proteins", name: "Droëwors", cal: 320, p: 45, c: 2, f: 15, serving: 30 },
+  { cat: "Proteins", name: "Salmon, cooked", cal: 208, p: 20, c: 0, f: 13, serving: 150 },
+  { cat: "Proteins", name: "Tuna, canned in water", cal: 116, p: 26, c: 0, f: 0.8, serving: 100 },
+  { cat: "Proteins", name: "Tuna, canned in oil", cal: 198, p: 25, c: 0, f: 10, serving: 100 },
+  { cat: "Proteins", name: "Cod, cooked", cal: 105, p: 23, c: 0, f: 0.9, serving: 150 },
+  { cat: "Proteins", name: "Hake, cooked", cal: 90, p: 19, c: 0, f: 1, serving: 150 },
+  { cat: "Proteins", name: "Tilapia, cooked", cal: 128, p: 26, c: 0, f: 2.7, serving: 150 },
+  { cat: "Proteins", name: "Shrimp / prawns, cooked", cal: 99, p: 24, c: 0.2, f: 0.3, serving: 100 },
+  { cat: "Proteins", name: "Sardines, canned", cal: 208, p: 25, c: 0, f: 11, serving: 100 },
+  { cat: "Proteins", name: "Eggs, whole", cal: 155, p: 13, c: 1.1, f: 11, serving: 50 },
+  { cat: "Proteins", name: "Egg whites", cal: 52, p: 11, c: 0.7, f: 0.2, serving: 33 },
 
   // Dairy
-  { cat: "Dairy", name: "Milk, full cream", cal: 61, p: 3.2, c: 4.8, f: 3.3 },
-  { cat: "Dairy", name: "Milk, 2%", cal: 50, p: 3.4, c: 5, f: 2 },
-  { cat: "Dairy", name: "Milk, skim", cal: 34, p: 3.4, c: 5, f: 0.1 },
-  { cat: "Dairy", name: "Greek yogurt, plain", cal: 59, p: 10, c: 3.6, f: 0.4 },
-  { cat: "Dairy", name: "Yogurt, plain low-fat", cal: 63, p: 5.3, c: 7, f: 1.6 },
-  { cat: "Dairy", name: "Cottage cheese", cal: 98, p: 11, c: 3.4, f: 4.3 },
-  { cat: "Dairy", name: "Cheddar cheese", cal: 403, p: 25, c: 1.3, f: 33 },
-  { cat: "Dairy", name: "Mozzarella", cal: 280, p: 28, c: 3.1, f: 17 },
-  { cat: "Dairy", name: "Feta cheese", cal: 264, p: 14, c: 4, f: 21 },
-  { cat: "Dairy", name: "Cream cheese", cal: 342, p: 6, c: 4, f: 34 },
-  { cat: "Dairy", name: "Butter", cal: 717, p: 0.9, c: 0.1, f: 81 },
-  { cat: "Dairy", name: "Cream, heavy", cal: 340, p: 2.1, c: 2.8, f: 36 },
+  { cat: "Dairy", name: "Milk, full cream", cal: 61, p: 3.2, c: 4.8, f: 3.3, serving: 250 },
+  { cat: "Dairy", name: "Milk, 2%", cal: 50, p: 3.4, c: 5, f: 2, serving: 250 },
+  { cat: "Dairy", name: "Milk, skim", cal: 34, p: 3.4, c: 5, f: 0.1, serving: 250 },
+  { cat: "Dairy", name: "Greek yogurt, plain", cal: 59, p: 10, c: 3.6, f: 0.4, serving: 170 },
+  { cat: "Dairy", name: "Yogurt, plain low-fat", cal: 63, p: 5.3, c: 7, f: 1.6, serving: 170 },
+  { cat: "Dairy", name: "Cottage cheese", cal: 98, p: 11, c: 3.4, f: 4.3, serving: 113 },
+  { cat: "Dairy", name: "Cheddar cheese", cal: 403, p: 25, c: 1.3, f: 33, serving: 30 },
+  { cat: "Dairy", name: "Mozzarella", cal: 280, p: 28, c: 3.1, f: 17, serving: 30 },
+  { cat: "Dairy", name: "Feta cheese", cal: 264, p: 14, c: 4, f: 21, serving: 30 },
+  { cat: "Dairy", name: "Cream cheese", cal: 342, p: 6, c: 4, f: 34, serving: 30 },
+  { cat: "Dairy", name: "Butter", cal: 717, p: 0.9, c: 0.1, f: 81, serving: 14 },
+  { cat: "Dairy", name: "Cream, heavy", cal: 340, p: 2.1, c: 2.8, f: 36, serving: 30 },
 
   // Grains & starches
-  { cat: "Grains & Starches", name: "White rice, cooked", cal: 130, p: 2.7, c: 28, f: 0.3 },
-  { cat: "Grains & Starches", name: "Brown rice, cooked", cal: 123, p: 2.7, c: 26, f: 1 },
-  { cat: "Grains & Starches", name: "Basmati rice, cooked", cal: 121, p: 3.5, c: 25, f: 0.4 },
-  { cat: "Grains & Starches", name: "Pasta, cooked", cal: 131, p: 5, c: 25, f: 1.1 },
-  { cat: "Grains & Starches", name: "Whole wheat pasta, cooked", cal: 124, p: 5.3, c: 27, f: 1.1 },
-  { cat: "Grains & Starches", name: "Oats, dry", cal: 389, p: 16.9, c: 66, f: 6.9 },
-  { cat: "Grains & Starches", name: "Quinoa, cooked", cal: 120, p: 4.4, c: 21, f: 1.9 },
-  { cat: "Grains & Starches", name: "White bread", cal: 265, p: 9, c: 49, f: 3.2 },
-  { cat: "Grains & Starches", name: "Whole wheat bread", cal: 247, p: 13, c: 41, f: 3.4 },
-  { cat: "Grains & Starches", name: "Sourdough bread", cal: 289, p: 11.4, c: 56, f: 1.6 },
-  { cat: "Grains & Starches", name: "Bagel", cal: 250, p: 10, c: 49, f: 1.5 },
-  { cat: "Grains & Starches", name: "Tortilla, flour", cal: 306, p: 8, c: 50, f: 7 },
-  { cat: "Grains & Starches", name: "Couscous, cooked", cal: 112, p: 3.8, c: 23, f: 0.2 },
-  { cat: "Grains & Starches", name: "Pap / mielie meal, cooked", cal: 122, p: 2.3, c: 26, f: 0.6 },
-  { cat: "Grains & Starches", name: "Samp, cooked", cal: 120, p: 3, c: 25, f: 0.5 },
-  { cat: "Grains & Starches", name: "Potato, boiled", cal: 87, p: 1.9, c: 20, f: 0.1 },
-  { cat: "Grains & Starches", name: "Potato, baked", cal: 93, p: 2.5, c: 21, f: 0.1 },
-  { cat: "Grains & Starches", name: "Sweet potato", cal: 86, p: 1.6, c: 20, f: 0.1 },
-  { cat: "Grains & Starches", name: "Cornflakes", cal: 357, p: 7, c: 84, f: 0.9 },
-  { cat: "Grains & Starches", name: "Muesli", cal: 375, p: 10, c: 66, f: 6 },
+  { cat: "Grains & Starches", name: "White rice, cooked", cal: 130, p: 2.7, c: 28, f: 0.3, serving: 150 },
+  { cat: "Grains & Starches", name: "Brown rice, cooked", cal: 123, p: 2.7, c: 26, f: 1, serving: 150 },
+  { cat: "Grains & Starches", name: "Basmati rice, cooked", cal: 121, p: 3.5, c: 25, f: 0.4, serving: 150 },
+  { cat: "Grains & Starches", name: "Pasta, cooked", cal: 131, p: 5, c: 25, f: 1.1, serving: 140 },
+  { cat: "Grains & Starches", name: "Whole wheat pasta, cooked", cal: 124, p: 5.3, c: 27, f: 1.1, serving: 140 },
+  { cat: "Grains & Starches", name: "Oats, dry", cal: 389, p: 16.9, c: 66, f: 6.9, serving: 40 },
+  { cat: "Grains & Starches", name: "Quinoa, cooked", cal: 120, p: 4.4, c: 21, f: 1.9, serving: 150 },
+  { cat: "Grains & Starches", name: "White bread", cal: 265, p: 9, c: 49, f: 3.2, serving: 30 },
+  { cat: "Grains & Starches", name: "Whole wheat bread", cal: 247, p: 13, c: 41, f: 3.4, serving: 30 },
+  { cat: "Grains & Starches", name: "Sourdough bread", cal: 289, p: 11.4, c: 56, f: 1.6, serving: 35 },
+  { cat: "Grains & Starches", name: "Bagel", cal: 250, p: 10, c: 49, f: 1.5, serving: 90 },
+  { cat: "Grains & Starches", name: "Tortilla, flour", cal: 306, p: 8, c: 50, f: 7, serving: 45 },
+  { cat: "Grains & Starches", name: "Couscous, cooked", cal: 112, p: 3.8, c: 23, f: 0.2, serving: 150 },
+  { cat: "Grains & Starches", name: "Pap / mielie meal, cooked", cal: 122, p: 2.3, c: 26, f: 0.6, serving: 200 },
+  { cat: "Grains & Starches", name: "Samp, cooked", cal: 120, p: 3, c: 25, f: 0.5, serving: 150 },
+  { cat: "Grains & Starches", name: "Potato, boiled", cal: 87, p: 1.9, c: 20, f: 0.1, serving: 150 },
+  { cat: "Grains & Starches", name: "Potato, baked", cal: 93, p: 2.5, c: 21, f: 0.1, serving: 173 },
+  { cat: "Grains & Starches", name: "Sweet potato", cal: 86, p: 1.6, c: 20, f: 0.1, serving: 130 },
+  { cat: "Grains & Starches", name: "Cornflakes", cal: 357, p: 7, c: 84, f: 0.9, serving: 30 },
+  { cat: "Grains & Starches", name: "Muesli", cal: 375, p: 10, c: 66, f: 6, serving: 50 },
 
   // Legumes
-  { cat: "Legumes", name: "Black beans, cooked", cal: 132, p: 8.9, c: 24, f: 0.5 },
-  { cat: "Legumes", name: "Kidney beans, cooked", cal: 127, p: 8.7, c: 23, f: 0.5 },
-  { cat: "Legumes", name: "Sugar beans, cooked", cal: 130, p: 9, c: 23, f: 0.5 },
-  { cat: "Legumes", name: "Chickpeas, cooked", cal: 164, p: 8.9, c: 27, f: 2.6 },
-  { cat: "Legumes", name: "Lentils, cooked", cal: 116, p: 9, c: 20, f: 0.4 },
-  { cat: "Legumes", name: "Baked beans, canned", cal: 94, p: 5, c: 17, f: 0.5 },
-  { cat: "Legumes", name: "Tofu, firm", cal: 76, p: 8, c: 1.9, f: 4.8 },
-  { cat: "Legumes", name: "Edamame", cal: 122, p: 11, c: 10, f: 5 },
+  { cat: "Legumes", name: "Black beans, cooked", cal: 132, p: 8.9, c: 24, f: 0.5, serving: 130 },
+  { cat: "Legumes", name: "Kidney beans, cooked", cal: 127, p: 8.7, c: 23, f: 0.5, serving: 130 },
+  { cat: "Legumes", name: "Sugar beans, cooked", cal: 130, p: 9, c: 23, f: 0.5, serving: 130 },
+  { cat: "Legumes", name: "Chickpeas, cooked", cal: 164, p: 8.9, c: 27, f: 2.6, serving: 130 },
+  { cat: "Legumes", name: "Lentils, cooked", cal: 116, p: 9, c: 20, f: 0.4, serving: 100 },
+  { cat: "Legumes", name: "Baked beans, canned", cal: 94, p: 5, c: 17, f: 0.5, serving: 130 },
+  { cat: "Legumes", name: "Tofu, firm", cal: 76, p: 8, c: 1.9, f: 4.8, serving: 100 },
+  { cat: "Legumes", name: "Edamame", cal: 122, p: 11, c: 10, f: 5, serving: 100 },
 
   // Vegetables
-  { cat: "Vegetables", name: "Broccoli", cal: 34, p: 2.8, c: 7, f: 0.4 },
-  { cat: "Vegetables", name: "Spinach", cal: 23, p: 2.9, c: 3.6, f: 0.4 },
-  { cat: "Vegetables", name: "Carrots", cal: 41, p: 0.9, c: 10, f: 0.2 },
-  { cat: "Vegetables", name: "Tomato", cal: 18, p: 0.9, c: 3.9, f: 0.2 },
-  { cat: "Vegetables", name: "Cucumber", cal: 15, p: 0.7, c: 3.6, f: 0.1 },
-  { cat: "Vegetables", name: "Onion", cal: 40, p: 1.1, c: 9.3, f: 0.1 },
-  { cat: "Vegetables", name: "Bell pepper", cal: 31, p: 1, c: 6, f: 0.3 },
-  { cat: "Vegetables", name: "Lettuce", cal: 15, p: 1.4, c: 2.9, f: 0.2 },
-  { cat: "Vegetables", name: "Cabbage", cal: 25, p: 1.3, c: 5.8, f: 0.1 },
-  { cat: "Vegetables", name: "Cauliflower", cal: 25, p: 1.9, c: 5, f: 0.3 },
-  { cat: "Vegetables", name: "Green beans", cal: 31, p: 1.8, c: 7, f: 0.2 },
-  { cat: "Vegetables", name: "Butternut squash", cal: 45, p: 1, c: 12, f: 0.1 },
-  { cat: "Vegetables", name: "Baby marrow / zucchini", cal: 17, p: 1.2, c: 3.1, f: 0.3 },
-  { cat: "Vegetables", name: "Mushrooms", cal: 22, p: 3.1, c: 3.3, f: 0.3 },
-  { cat: "Vegetables", name: "Sweetcorn", cal: 86, p: 3.3, c: 19, f: 1.2 },
-  { cat: "Vegetables", name: "Peas", cal: 81, p: 5.4, c: 14, f: 0.4 },
-  { cat: "Vegetables", name: "Beetroot", cal: 43, p: 1.6, c: 10, f: 0.2 },
-  { cat: "Vegetables", name: "Avocado", cal: 160, p: 2, c: 9, f: 15 },
+  { cat: "Vegetables", name: "Broccoli", cal: 34, p: 2.8, c: 7, f: 0.4, serving: 90 },
+  { cat: "Vegetables", name: "Spinach", cal: 23, p: 2.9, c: 3.6, f: 0.4, serving: 30 },
+  { cat: "Vegetables", name: "Carrots", cal: 41, p: 0.9, c: 10, f: 0.2, serving: 60 },
+  { cat: "Vegetables", name: "Tomato", cal: 18, p: 0.9, c: 3.9, f: 0.2, serving: 120 },
+  { cat: "Vegetables", name: "Cucumber", cal: 15, p: 0.7, c: 3.6, f: 0.1, serving: 100 },
+  { cat: "Vegetables", name: "Onion", cal: 40, p: 1.1, c: 9.3, f: 0.1, serving: 110 },
+  { cat: "Vegetables", name: "Bell pepper", cal: 31, p: 1, c: 6, f: 0.3, serving: 120 },
+  { cat: "Vegetables", name: "Lettuce", cal: 15, p: 1.4, c: 2.9, f: 0.2, serving: 50 },
+  { cat: "Vegetables", name: "Cabbage", cal: 25, p: 1.3, c: 5.8, f: 0.1, serving: 90 },
+  { cat: "Vegetables", name: "Cauliflower", cal: 25, p: 1.9, c: 5, f: 0.3, serving: 100 },
+  { cat: "Vegetables", name: "Green beans", cal: 31, p: 1.8, c: 7, f: 0.2, serving: 100 },
+  { cat: "Vegetables", name: "Butternut squash", cal: 45, p: 1, c: 12, f: 0.1, serving: 150 },
+  { cat: "Vegetables", name: "Baby marrow / zucchini", cal: 17, p: 1.2, c: 3.1, f: 0.3, serving: 100 },
+  { cat: "Vegetables", name: "Mushrooms", cal: 22, p: 3.1, c: 3.3, f: 0.3, serving: 70 },
+  { cat: "Vegetables", name: "Sweetcorn", cal: 86, p: 3.3, c: 19, f: 1.2, serving: 90 },
+  { cat: "Vegetables", name: "Peas", cal: 81, p: 5.4, c: 14, f: 0.4, serving: 80 },
+  { cat: "Vegetables", name: "Beetroot", cal: 43, p: 1.6, c: 10, f: 0.2, serving: 80 },
+  { cat: "Vegetables", name: "Avocado", cal: 160, p: 2, c: 9, f: 15, serving: 150 },
 
   // Fruits
-  { cat: "Fruits", name: "Banana", cal: 89, p: 1.1, c: 23, f: 0.3 },
-  { cat: "Fruits", name: "Apple", cal: 52, p: 0.3, c: 14, f: 0.2 },
-  { cat: "Fruits", name: "Orange", cal: 47, p: 0.9, c: 12, f: 0.1 },
-  { cat: "Fruits", name: "Naartjie / mandarin", cal: 53, p: 0.8, c: 13, f: 0.3 },
-  { cat: "Fruits", name: "Grapes", cal: 69, p: 0.7, c: 18, f: 0.2 },
-  { cat: "Fruits", name: "Strawberries", cal: 32, p: 0.7, c: 7.7, f: 0.3 },
-  { cat: "Fruits", name: "Blueberries", cal: 57, p: 0.7, c: 14, f: 0.3 },
-  { cat: "Fruits", name: "Mango", cal: 60, p: 0.8, c: 15, f: 0.4 },
-  { cat: "Fruits", name: "Pineapple", cal: 50, p: 0.5, c: 13, f: 0.1 },
-  { cat: "Fruits", name: "Watermelon", cal: 30, p: 0.6, c: 8, f: 0.2 },
-  { cat: "Fruits", name: "Pear", cal: 57, p: 0.4, c: 15, f: 0.1 },
-  { cat: "Fruits", name: "Peach", cal: 39, p: 0.9, c: 10, f: 0.3 },
-  { cat: "Fruits", name: "Grapefruit", cal: 42, p: 0.8, c: 11, f: 0.1 },
-  { cat: "Fruits", name: "Kiwi", cal: 61, p: 1.1, c: 15, f: 0.5 },
-  { cat: "Fruits", name: "Dates, dried", cal: 282, p: 2.5, c: 75, f: 0.4 },
-  { cat: "Fruits", name: "Raisins", cal: 299, p: 3.1, c: 79, f: 0.5 },
+  { cat: "Fruits", name: "Banana", cal: 89, p: 1.1, c: 23, f: 0.3, serving: 118 },
+  { cat: "Fruits", name: "Apple", cal: 52, p: 0.3, c: 14, f: 0.2, serving: 180 },
+  { cat: "Fruits", name: "Orange", cal: 47, p: 0.9, c: 12, f: 0.1, serving: 130 },
+  { cat: "Fruits", name: "Naartjie / mandarin", cal: 53, p: 0.8, c: 13, f: 0.3, serving: 74 },
+  { cat: "Fruits", name: "Grapes", cal: 69, p: 0.7, c: 18, f: 0.2, serving: 100 },
+  { cat: "Fruits", name: "Strawberries", cal: 32, p: 0.7, c: 7.7, f: 0.3, serving: 150 },
+  { cat: "Fruits", name: "Blueberries", cal: 57, p: 0.7, c: 14, f: 0.3, serving: 100 },
+  { cat: "Fruits", name: "Mango", cal: 60, p: 0.8, c: 15, f: 0.4, serving: 200 },
+  { cat: "Fruits", name: "Pineapple", cal: 50, p: 0.5, c: 13, f: 0.1, serving: 165 },
+  { cat: "Fruits", name: "Watermelon", cal: 30, p: 0.6, c: 8, f: 0.2, serving: 280 },
+  { cat: "Fruits", name: "Pear", cal: 57, p: 0.4, c: 15, f: 0.1, serving: 178 },
+  { cat: "Fruits", name: "Peach", cal: 39, p: 0.9, c: 10, f: 0.3, serving: 150 },
+  { cat: "Fruits", name: "Grapefruit", cal: 42, p: 0.8, c: 11, f: 0.1, serving: 120 },
+  { cat: "Fruits", name: "Kiwi", cal: 61, p: 1.1, c: 15, f: 0.5, serving: 76 },
+  { cat: "Fruits", name: "Dates, dried", cal: 282, p: 2.5, c: 75, f: 0.4, serving: 24 },
+  { cat: "Fruits", name: "Raisins", cal: 299, p: 3.1, c: 79, f: 0.5, serving: 40 },
 
   // Nuts, seeds & fats
-  { cat: "Nuts, Seeds & Fats", name: "Almonds", cal: 579, p: 21, c: 22, f: 50 },
-  { cat: "Nuts, Seeds & Fats", name: "Peanuts", cal: 567, p: 26, c: 16, f: 49 },
-  { cat: "Nuts, Seeds & Fats", name: "Peanut butter", cal: 588, p: 25, c: 20, f: 50 },
-  { cat: "Nuts, Seeds & Fats", name: "Cashews", cal: 553, p: 18, c: 30, f: 44 },
-  { cat: "Nuts, Seeds & Fats", name: "Walnuts", cal: 654, p: 15, c: 14, f: 65 },
-  { cat: "Nuts, Seeds & Fats", name: "Chia seeds", cal: 486, p: 17, c: 42, f: 31 },
-  { cat: "Nuts, Seeds & Fats", name: "Sunflower seeds", cal: 584, p: 21, c: 20, f: 51 },
-  { cat: "Nuts, Seeds & Fats", name: "Olive oil", cal: 884, p: 0, c: 0, f: 100 },
-  { cat: "Nuts, Seeds & Fats", name: "Coconut oil", cal: 862, p: 0, c: 0, f: 100 },
-  { cat: "Nuts, Seeds & Fats", name: "Sunflower oil", cal: 884, p: 0, c: 0, f: 100 },
-  { cat: "Nuts, Seeds & Fats", name: "Mayonnaise", cal: 680, p: 1, c: 1, f: 75 },
-  { cat: "Nuts, Seeds & Fats", name: "Margarine", cal: 717, p: 0.2, c: 0.9, f: 80 },
+  { cat: "Nuts, Seeds & Fats", name: "Almonds", cal: 579, p: 21, c: 22, f: 50, serving: 28 },
+  { cat: "Nuts, Seeds & Fats", name: "Peanuts", cal: 567, p: 26, c: 16, f: 49, serving: 28 },
+  { cat: "Nuts, Seeds & Fats", name: "Peanut butter", cal: 588, p: 25, c: 20, f: 50, serving: 32 },
+  { cat: "Nuts, Seeds & Fats", name: "Cashews", cal: 553, p: 18, c: 30, f: 44, serving: 28 },
+  { cat: "Nuts, Seeds & Fats", name: "Walnuts", cal: 654, p: 15, c: 14, f: 65, serving: 28 },
+  { cat: "Nuts, Seeds & Fats", name: "Chia seeds", cal: 486, p: 17, c: 42, f: 31, serving: 15 },
+  { cat: "Nuts, Seeds & Fats", name: "Sunflower seeds", cal: 584, p: 21, c: 20, f: 51, serving: 28 },
+  { cat: "Nuts, Seeds & Fats", name: "Olive oil", cal: 884, p: 0, c: 0, f: 100, serving: 14 },
+  { cat: "Nuts, Seeds & Fats", name: "Coconut oil", cal: 862, p: 0, c: 0, f: 100, serving: 14 },
+  { cat: "Nuts, Seeds & Fats", name: "Sunflower oil", cal: 884, p: 0, c: 0, f: 100, serving: 14 },
+  { cat: "Nuts, Seeds & Fats", name: "Mayonnaise", cal: 680, p: 1, c: 1, f: 75, serving: 15 },
+  { cat: "Nuts, Seeds & Fats", name: "Margarine", cal: 717, p: 0.2, c: 0.9, f: 80, serving: 14 },
 
   // Baked goods & snacks
-  { cat: "Baked Goods & Snacks", name: "Rusk", cal: 420, p: 10, c: 65, f: 14 },
-  { cat: "Baked Goods & Snacks", name: "Vetkoek", cal: 270, p: 5, c: 34, f: 13 },
-  { cat: "Baked Goods & Snacks", name: "Potato chips / crisps", cal: 536, p: 7, c: 53, f: 35 },
-  { cat: "Baked Goods & Snacks", name: "Popcorn, plain", cal: 387, p: 13, c: 78, f: 4.5 },
-  { cat: "Baked Goods & Snacks", name: "Pretzels", cal: 380, p: 10, c: 79, f: 2.6 },
-  { cat: "Baked Goods & Snacks", name: "Chocolate, milk", cal: 535, p: 7.7, c: 59, f: 30 },
-  { cat: "Baked Goods & Snacks", name: "Chocolate, dark 70%", cal: 598, p: 7.8, c: 46, f: 43 },
-  { cat: "Baked Goods & Snacks", name: "Biscuit / cookie", cal: 480, p: 6, c: 65, f: 22 },
-  { cat: "Baked Goods & Snacks", name: "Muffin", cal: 377, p: 6, c: 55, f: 15 },
-  { cat: "Baked Goods & Snacks", name: "Croissant", cal: 406, p: 8.2, c: 45, f: 21 },
-  { cat: "Baked Goods & Snacks", name: "Donut", cal: 452, p: 4.9, c: 51, f: 25 },
-  { cat: "Baked Goods & Snacks", name: "Rice cakes", cal: 387, p: 8, c: 81, f: 3 },
-  { cat: "Baked Goods & Snacks", name: "Granola bar", cal: 471, p: 10, c: 64, f: 20 },
-  { cat: "Baked Goods & Snacks", name: "Protein bar", cal: 380, p: 30, c: 40, f: 12 },
+  { cat: "Baked Goods & Snacks", name: "Rusk", cal: 420, p: 10, c: 65, f: 14, serving: 35 },
+  { cat: "Baked Goods & Snacks", name: "Vetkoek", cal: 270, p: 5, c: 34, f: 13, serving: 80 },
+  { cat: "Baked Goods & Snacks", name: "Potato chips / crisps", cal: 536, p: 7, c: 53, f: 35, serving: 30 },
+  { cat: "Baked Goods & Snacks", name: "Popcorn, plain", cal: 387, p: 13, c: 78, f: 4.5, serving: 28 },
+  { cat: "Baked Goods & Snacks", name: "Pretzels", cal: 380, p: 10, c: 79, f: 2.6, serving: 30 },
+  { cat: "Baked Goods & Snacks", name: "Chocolate, milk", cal: 535, p: 7.7, c: 59, f: 30, serving: 40 },
+  { cat: "Baked Goods & Snacks", name: "Chocolate, dark 70%", cal: 598, p: 7.8, c: 46, f: 43, serving: 40 },
+  { cat: "Baked Goods & Snacks", name: "Biscuit / cookie", cal: 480, p: 6, c: 65, f: 22, serving: 15 },
+  { cat: "Baked Goods & Snacks", name: "Muffin", cal: 377, p: 6, c: 55, f: 15, serving: 110 },
+  { cat: "Baked Goods & Snacks", name: "Croissant", cal: 406, p: 8.2, c: 45, f: 21, serving: 60 },
+  { cat: "Baked Goods & Snacks", name: "Donut", cal: 452, p: 4.9, c: 51, f: 25, serving: 60 },
+  { cat: "Baked Goods & Snacks", name: "Rice cakes", cal: 387, p: 8, c: 81, f: 3, serving: 9 },
+  { cat: "Baked Goods & Snacks", name: "Granola bar", cal: 471, p: 10, c: 64, f: 20, serving: 40 },
+  { cat: "Baked Goods & Snacks", name: "Protein bar", cal: 380, p: 30, c: 40, f: 12, serving: 60 },
 
   // Fast food & takeout
-  { cat: "Fast Food & Takeout", name: "Pizza, cheese slice", cal: 266, p: 11, c: 33, f: 10 },
-  { cat: "Fast Food & Takeout", name: "Hamburger, fast food", cal: 295, p: 17, c: 28, f: 14 },
-  { cat: "Fast Food & Takeout", name: "French fries", cal: 312, p: 3.4, c: 41, f: 15 },
-  { cat: "Fast Food & Takeout", name: "Fried chicken", cal: 246, p: 19, c: 8, f: 16 },
-  { cat: "Fast Food & Takeout", name: "Boerewors roll", cal: 280, p: 12, c: 22, f: 16 },
-  { cat: "Fast Food & Takeout", name: "Bunny chow (curry & bread)", cal: 200, p: 6, c: 28, f: 7 },
-  { cat: "Fast Food & Takeout", name: "Chicken curry & rice", cal: 165, p: 9, c: 18, f: 6 },
-  { cat: "Fast Food & Takeout", name: "Fish and chips", cal: 265, p: 12, c: 24, f: 14 },
-  { cat: "Fast Food & Takeout", name: "Sushi, salmon roll", cal: 150, p: 6, c: 22, f: 4 },
-  { cat: "Fast Food & Takeout", name: "Kebab / wrap", cal: 220, p: 14, c: 20, f: 10 },
+  { cat: "Fast Food & Takeout", name: "Pizza, cheese slice", cal: 266, p: 11, c: 33, f: 10, serving: 110 },
+  { cat: "Fast Food & Takeout", name: "Hamburger, fast food", cal: 295, p: 17, c: 28, f: 14, serving: 110 },
+  { cat: "Fast Food & Takeout", name: "French fries", cal: 312, p: 3.4, c: 41, f: 15, serving: 115 },
+  { cat: "Fast Food & Takeout", name: "Fried chicken", cal: 246, p: 19, c: 8, f: 16, serving: 120 },
+  { cat: "Fast Food & Takeout", name: "Boerewors roll", cal: 280, p: 12, c: 22, f: 16, serving: 150 },
+  { cat: "Fast Food & Takeout", name: "Bunny chow (curry & bread)", cal: 200, p: 6, c: 28, f: 7, serving: 400 },
+  { cat: "Fast Food & Takeout", name: "Chicken curry & rice", cal: 165, p: 9, c: 18, f: 6, serving: 350 },
+  { cat: "Fast Food & Takeout", name: "Fish and chips", cal: 265, p: 12, c: 24, f: 14, serving: 400 },
+  { cat: "Fast Food & Takeout", name: "Sushi, salmon roll", cal: 150, p: 6, c: 22, f: 4, serving: 150 },
+  { cat: "Fast Food & Takeout", name: "Kebab / wrap", cal: 220, p: 14, c: 20, f: 10, serving: 250 },
 
   // Beverages
-  { cat: "Beverages", name: "Cola / soft drink", cal: 42, p: 0, c: 10.6, f: 0 },
-  { cat: "Beverages", name: "Orange juice", cal: 45, p: 0.7, c: 10.4, f: 0.2 },
-  { cat: "Beverages", name: "Beer", cal: 43, p: 0.5, c: 3.6, f: 0 },
-  { cat: "Beverages", name: "Wine, red", cal: 85, p: 0.1, c: 2.6, f: 0 },
-  { cat: "Beverages", name: "Rooibos tea, plain", cal: 1, p: 0, c: 0.3, f: 0 },
-  { cat: "Beverages", name: "Coffee, black", cal: 1, p: 0.1, c: 0, f: 0 },
-  { cat: "Beverages", name: "Whey protein powder", cal: 400, p: 80, c: 8, f: 6 },
-  { cat: "Beverages", name: "Energy drink", cal: 45, p: 0, c: 11, f: 0 },
-  { cat: "Beverages", name: "Sports drink", cal: 26, p: 0, c: 6, f: 0 },
+  { cat: "Beverages", name: "Cola / soft drink", cal: 42, p: 0, c: 10.6, f: 0, serving: 330 },
+  { cat: "Beverages", name: "Orange juice", cal: 45, p: 0.7, c: 10.4, f: 0.2, serving: 250 },
+  { cat: "Beverages", name: "Beer", cal: 43, p: 0.5, c: 3.6, f: 0, serving: 340 },
+  { cat: "Beverages", name: "Wine, red", cal: 85, p: 0.1, c: 2.6, f: 0, serving: 150 },
+  { cat: "Beverages", name: "Rooibos tea, plain", cal: 1, p: 0, c: 0.3, f: 0, serving: 250 },
+  { cat: "Beverages", name: "Coffee, black", cal: 1, p: 0.1, c: 0, f: 0, serving: 250 },
+  { cat: "Beverages", name: "Whey protein powder", cal: 400, p: 80, c: 8, f: 6, serving: 30 },
+  { cat: "Beverages", name: "Energy drink", cal: 45, p: 0, c: 11, f: 0, serving: 250 },
+  { cat: "Beverages", name: "Sports drink", cal: 26, p: 0, c: 6, f: 0, serving: 500 },
 
   // Condiments & sauces
-  { cat: "Condiments & Sauces", name: "Ketchup", cal: 101, p: 1.2, c: 26, f: 0.1 },
-  { cat: "Condiments & Sauces", name: "Mustard", cal: 66, p: 4, c: 8, f: 3 },
-  { cat: "Condiments & Sauces", name: "Soy sauce", cal: 53, p: 8, c: 4.9, f: 0.1 },
-  { cat: "Condiments & Sauces", name: "BBQ / braai sauce", cal: 172, p: 1, c: 40, f: 0.5 },
-  { cat: "Condiments & Sauces", name: "Salad dressing, ranch", cal: 449, p: 1, c: 8, f: 47 },
-  { cat: "Condiments & Sauces", name: "Hummus", cal: 166, p: 8, c: 14, f: 9.6 },
-  { cat: "Condiments & Sauces", name: "Honey", cal: 304, p: 0.3, c: 82, f: 0 },
-  { cat: "Condiments & Sauces", name: "Jam", cal: 250, p: 0.4, c: 65, f: 0.1 },
-  { cat: "Condiments & Sauces", name: "Peri-peri sauce", cal: 90, p: 1, c: 12, f: 4 },
+  { cat: "Condiments & Sauces", name: "Ketchup", cal: 101, p: 1.2, c: 26, f: 0.1, serving: 17 },
+  { cat: "Condiments & Sauces", name: "Mustard", cal: 66, p: 4, c: 8, f: 3, serving: 5 },
+  { cat: "Condiments & Sauces", name: "Soy sauce", cal: 53, p: 8, c: 4.9, f: 0.1, serving: 18 },
+  { cat: "Condiments & Sauces", name: "BBQ / braai sauce", cal: 172, p: 1, c: 40, f: 0.5, serving: 30 },
+  { cat: "Condiments & Sauces", name: "Salad dressing, ranch", cal: 449, p: 1, c: 8, f: 47, serving: 30 },
+  { cat: "Condiments & Sauces", name: "Hummus", cal: 166, p: 8, c: 14, f: 9.6, serving: 30 },
+  { cat: "Condiments & Sauces", name: "Honey", cal: 304, p: 0.3, c: 82, f: 0, serving: 21 },
+  { cat: "Condiments & Sauces", name: "Jam", cal: 250, p: 0.4, c: 65, f: 0.1, serving: 20 },
+  { cat: "Condiments & Sauces", name: "Peri-peri sauce", cal: 90, p: 1, c: 12, f: 4, serving: 20 },
 ];
 const FOOD_CATEGORIES = [...new Set(FOOD_DB.map((f) => f.cat))];
 
@@ -556,7 +556,7 @@ function AuthScreen() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "#000" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", padding: "48px 24px", background: "#000", overflowX: "hidden" }}>
       <div className="ft-card" style={{ maxWidth: 440, width: "100%" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, marginBottom: 20 }}>
           <Activity color="var(--ink)" size={60} />
@@ -623,6 +623,125 @@ function AuthScreen() {
             </>
           )}
         </p>
+      </div>
+      <AppShowcase />
+    </div>
+  );
+}
+
+function PhoneMockup({ src, rotate, x, y, z, size }) {
+  return (
+    <div
+      style={{
+        position: "absolute", top: "50%", left: "50%", width: size, zIndex: z,
+        transform: `translate(-50%, -50%) translate(${x}px, ${y}px) rotate(${rotate}deg)`,
+      }}
+    >
+      <div
+        style={{
+          aspectRatio: "9 / 19.5", borderRadius: 26, border: "7px solid #1c1c1c", background: "#000",
+          overflow: "hidden", boxShadow: "0 25px 60px rgba(0,0,0,.6)", position: "relative",
+        }}
+      >
+        <div style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", width: "34%", height: 16, background: "#1c1c1c", borderRadius: 10, zIndex: 2 }} />
+        <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top", display: "block" }} />
+      </div>
+    </div>
+  );
+}
+
+function InstallShortcutButton() {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isIOS, setIsIOS] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    setIsIOS(/iphone|ipad|ipod/i.test(navigator.userAgent));
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      setDeferredPrompt(null);
+    } else {
+      setShowHint(true);
+    }
+  };
+
+  return (
+    <div style={{ textAlign: "center", maxWidth: 220 }}>
+      <button
+        className="ft-btn"
+        style={{ justifyContent: "center", width: "100%", background: "#fff", color: "#000", border: "none" }}
+        onClick={handleClick}
+      >
+        <Download size={15} /> Download Shortcut
+      </button>
+      <p style={{ fontSize: 11, color: "rgba(255,255,255,.5)", marginTop: 10 }}>
+        Adds a Fit Data icon to your home screen — opens like an app, no app store needed.
+      </p>
+      {showHint && (
+        <p style={{ fontSize: 12, color: "#fff", marginTop: 10, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.14)", borderRadius: 8, padding: 10 }}>
+          {isIOS
+            ? <>On iPhone: tap the <strong>Share</strong> icon in Safari, then <strong>"Add to Home Screen."</strong></>
+            : <>Look for <strong>"Install app"</strong> or <strong>"Add to Home Screen"</strong> in your browser's menu.</>}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function AppShowcase() {
+  const features = [
+    { icon: Flame, title: "Log Your Food", desc: "Track calories, protein, carbs and fat for every meal in seconds." },
+    { icon: Dumbbell, title: "Log Your Workouts", desc: "Record exercises, sets, reps, and effort — or just the essentials." },
+    { icon: TrendingUp, title: "Track Your Fitness Journey", desc: "Daily and weekly reports show your progress at a glance." },
+    { icon: Target, title: "Goal Setting", desc: "Set calorie, macro, and training targets tailored to you." },
+    { icon: Activity, title: "Measurements Tracking", desc: "Log InBody scans and body measurements over time." },
+    { icon: Calendar, title: "Data Tracking", desc: "Every entry is stored securely and always available to you." },
+  ];
+
+  return (
+    <div style={{ maxWidth: 1000, width: "100%", marginTop: 56, overflow: "hidden" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 24, marginBottom: 40 }}>
+        <div>
+          <div style={{ position: "relative", height: 420, width: 340, flexShrink: 0 }}>
+            <PhoneMockup src="/screenshots/food-log.png" rotate={-12} x={-95} y={20} z={1} size={150} />
+            <PhoneMockup src="/screenshots/workout-log.png" rotate={12} x={55} y={20} z={1} size={150} />
+            <PhoneMockup src="/screenshots/dashboard.png" rotate={0} x={-20} y={0} z={3} size={170} />
+          </div>
+          <p style={{ textAlign: "center", fontSize: 12, color: "rgba(255,255,255,.5)", marginTop: 24, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            Everything you need to track your training
+          </p>
+        </div>
+        <InstallShortcutButton />
+      </div>
+
+      <div className="ft-responsive-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
+        {features.map((f) => (
+          <div
+            key={f.title}
+            style={{
+              display: "flex", gap: 14, alignItems: "flex-start", padding: 18,
+              border: "1px solid rgba(255,255,255,.16)", borderRadius: 18, background: "rgba(255,255,255,.04)",
+            }}
+          >
+            <div style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 10, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.14)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <f.icon size={18} color="#fff" />
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 4 }}>{f.title}</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,.55)", lineHeight: 1.5 }}>{f.desc}</div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -1231,6 +1350,7 @@ function FoodLogScreen({ date, setDate, entries, addEntry, removeEntry, goals, c
   const categories = (customFoods && customFoods.length > 0) ? ["My Foods", ...FOOD_CATEGORIES] : FOOD_CATEGORIES;
 
   const filtered = fullDB.filter((f) => f.name.toLowerCase().includes(query.toLowerCase()));
+  const selectedFood = fullDB.find((f) => f.name === selected);
 
   useEffect(() => {
     if (!filtered.some((f) => f.name === selected) && filtered.length > 0) {
@@ -1365,7 +1485,18 @@ function FoodLogScreen({ date, setDate, entries, addEntry, removeEntry, goals, c
             </select>
           </div>
           <div style={{ marginBottom: 14 }}>
-            <label className="ft-label">Amount (grams)</label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <label className="ft-label" style={{ marginBottom: 6 }}>Amount (grams)</label>
+              {selectedFood?.serving && (
+                <button
+                  type="button"
+                  onClick={() => setGrams(selectedFood.serving)}
+                  style={{ fontSize: 11, color: "var(--work)", background: "transparent", border: "none", cursor: "pointer", padding: 0, marginBottom: 6 }}
+                >
+                  Typical serving: ~{selectedFood.serving}g
+                </button>
+              )}
+            </div>
             <input className="ft-input" type="number" value={grams} onChange={(e) => setGrams(e.target.value)} />
           </div>
           <button className="ft-btn" style={{ width: "100%", justifyContent: "center" }} onClick={handleAdd}>
