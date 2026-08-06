@@ -625,6 +625,19 @@ function AuthScreen() {
         </p>
       </div>
       <AppShowcase />
+
+      <footer style={{ display: "flex", flexWrap: "wrap", gap: 18, justifyContent: "center", marginTop: 56, paddingTop: 24, borderTop: "1px solid rgba(255,255,255,.1)" }}>
+        {[
+          { label: "Cancellation Policy", href: "/cancellation-policy" },
+          { label: "Refund Policy", href: "/refund-policy" },
+          { label: "Privacy Policy", href: "/privacy" },
+          { label: "Terms of Service", href: "/terms" },
+        ].map((l) => (
+          <a key={l.href} href={l.href} style={{ fontSize: 11, color: "rgba(255,255,255,.4)", textDecoration: "none" }}>
+            {l.label}
+          </a>
+        ))}
+      </footer>
     </div>
   );
 }
@@ -804,6 +817,149 @@ function ResetPasswordScreen({ onDone }) {
         </button>
       </div>
     </div>
+  );
+}
+
+const POLICY_LAST_UPDATED = "6 August 2026";
+
+function PolicyPage({ title, children }) {
+  return (
+    <div className="ft-root">
+      <style>{TOKENS}</style>
+      <div style={{ minHeight: "100vh", background: "#000", padding: "48px 24px" }}>
+        <div style={{ maxWidth: 720, margin: "0 auto" }}>
+          <a href="/" style={{ fontSize: 13, color: "rgba(255,255,255,.5)", textDecoration: "none" }}>← Back to Fit Data</a>
+          <h1 className="ft-display" style={{ fontSize: 28, color: "#fff", marginTop: 20, marginBottom: 6 }}>{title}</h1>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,.4)", marginBottom: 32 }}>Last updated: {POLICY_LAST_UPDATED}</p>
+          <div style={{ fontSize: 14, lineHeight: 1.7, color: "rgba(255,255,255,.8)" }}>
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PolicySection({ n, title, children }) {
+  return (
+    <p style={{ marginBottom: 18 }}>
+      <strong style={{ color: "#fff" }}>{n}. {title}.</strong> {children}
+    </p>
+  );
+}
+
+function TermsOfServicePage() {
+  return (
+    <PolicyPage title="Terms of Service">
+      <PolicySection n={1} title="Acceptance of terms">
+        By creating an account and using FIT DATA ("the App"), you agree to be bound by these Terms of Service and our Privacy Policy. If you do not agree, do not use the App.
+      </PolicySection>
+      <PolicySection n={2} title="Purpose of data collection">
+        The information you provide (profile details, goals, food/workout/step logs, body measurements) is collected and used for one purpose only: to store and track your own fitness data, for you, as the paying account holder. It is not used for any other purpose, and it is not shared with other users. We do not sell your personal data to any third party, and we do not share it with advertisers or data brokers.
+      </PolicySection>
+      <PolicySection n={3} title="Who can access your data">
+        No one besides you has access to your individual fitness data, other than the limited service providers described below, strictly to the extent needed to operate the App (for example, our database host storing it securely, or our payment processor handling your subscription payment).
+      </PolicySection>
+      <PolicySection n={4} title="Service providers">
+        We use third-party service providers to operate the App — for example database hosting and payment processing. These providers only process your data to the extent necessary to provide that specific service, under confidentiality obligations, and never to sell or repurpose it. We do not store your full card details ourselves; card payments are handled directly by our payment processor.
+      </PolicySection>
+      <PolicySection n={5} title="POPIA compliance">
+        We process your personal information in accordance with South Africa's Protection of Personal Information Act, 2013 (POPIA). See our Privacy Policy for full details on how your data is handled and your rights.
+      </PolicySection>
+      <PolicySection n={6} title="Account & subscription">
+        Certain features require a paid subscription. Subscriptions renew automatically until cancelled. See our Cancellation Policy and Refund Policy for details.
+      </PolicySection>
+      <PolicySection n={7} title="Changes to these terms">
+        We may update or modify these Terms, our Privacy Policy, our Cancellation Policy, our Refund Policy, or our pricing at any time and at our sole discretion, to reflect changes in our service, legal requirements, or business practices. We will make reasonable efforts to notify you of material changes. Continued use of the App after changes take effect constitutes acceptance of the revised terms.
+      </PolicySection>
+      <PolicySection n={8} title="No medical advice">
+        FIT DATA is a tracking tool, not a medical device. Content in the App is not medical advice; consult a qualified professional before starting any diet or exercise program.
+      </PolicySection>
+      <PolicySection n={9} title="Termination">
+        You may stop using the App and delete your account at any time. We may suspend or terminate accounts that violate these terms.
+      </PolicySection>
+      <PolicySection n={10} title="Limitation of liability">
+        The App is provided "as is" without warranties of any kind. To the maximum extent permitted by applicable law, we are not liable for indirect, incidental, or consequential damages arising from your use of the App.
+      </PolicySection>
+      <PolicySection n={11} title="Governing law & contact">
+        These terms are governed by the laws of South Africa. Questions about these terms can be sent to the support address listed in the App.
+      </PolicySection>
+    </PolicyPage>
+  );
+}
+
+function PrivacyPolicyPage() {
+  return (
+    <PolicyPage title="Privacy Policy">
+      <PolicySection n={1} title="What we collect">
+        Your account email, profile details (name, weight, height, age, activity level), goals, food/workout/step logs, body measurements, and InBody scan results — only what you choose to enter into the App.
+      </PolicySection>
+      <PolicySection n={2} title="How we use it">
+        Solely to operate and provide the fitness-tracking service to you. We do not use your data for advertising, we do not sell it, and we do not share it with data brokers.
+      </PolicySection>
+      <PolicySection n={3} title="Who can access it">
+        Only you. The only exceptions are the limited service providers strictly necessary to run the App: our database host (which stores your data securely) and our payment processor (which handles your subscription payment). Neither is permitted to use your data for any other purpose.
+      </PolicySection>
+      <PolicySection n={4} title="POPIA rights">
+        We process your personal information in accordance with South Africa's Protection of Personal Information Act, 2013 (POPIA), on the lawful basis of your consent and the necessity of processing to perform our contract with you. You have the right to request access to, correction of, or deletion of your personal information, and to object to its processing, by contacting us using the details below.
+      </PolicySection>
+      <PolicySection n={5} title="Data security">
+        We maintain reasonable technical and organisational safeguards to protect your information against loss, unauthorised access, and disclosure.
+      </PolicySection>
+      <PolicySection n={6} title="Data retention">
+        We keep your data for as long as your account is active. If you delete your account, your data is removed; you can also request deletion at any time by contacting us.
+      </PolicySection>
+      <PolicySection n={7} title="Changes to this policy">
+        We may update this Privacy Policy at any time to reflect changes in our practices or legal requirements. Material changes will be flagged in the App.
+      </PolicySection>
+      <PolicySection n={8} title="Contact">
+        Questions about this policy, or requests relating to your personal information, can be sent to the support address listed in the App.
+      </PolicySection>
+    </PolicyPage>
+  );
+}
+
+function CancellationPolicyPage() {
+  return (
+    <PolicyPage title="Cancellation Policy">
+      <PolicySection n={1} title="How to cancel">
+        You can cancel your subscription at any time from within the App — open the menu and select "Cancel subscription." No need to contact support unless you run into an issue.
+      </PolicySection>
+      <PolicySection n={2} title="What happens when you cancel">
+        Cancelling immediately stops all future billing — no further payments will be taken. Cancelling also immediately ends access to paid features (food/workout logging, goal tracking, and progress charts); we do not currently offer continued access through the remainder of an already-paid period.
+      </PolicySection>
+      <PolicySection n={3} title="No cancellation fees">
+        There is no charge or penalty for cancelling your subscription.
+      </PolicySection>
+      <PolicySection n={4} title="Re-subscribing">
+        You can subscribe again at any time from the App if you change your mind.
+      </PolicySection>
+      <PolicySection n={5} title="Contact">
+        If you're having trouble cancelling, contact us at the support address listed in the App and we'll help directly.
+      </PolicySection>
+    </PolicyPage>
+  );
+}
+
+function RefundPolicyPage() {
+  return (
+    <PolicyPage title="Refund Policy">
+      <PolicySection n={1} title="Subscription fees">
+        Subscription fees are billed in advance for each billing period (monthly or annual) and are non-refundable, except as set out below or as required by applicable law.
+      </PolicySection>
+      <PolicySection n={2} title="Billing errors">
+        If you believe you were charged in error — for example a duplicate charge or a technical fault — contact us and we will investigate and issue a refund where appropriate.
+      </PolicySection>
+      <PolicySection n={3} title="Unused time after cancelling">
+        Because cancelling immediately ends access to paid features (see our Cancellation Policy), there is no unused-time balance to refund — you are not billed again after cancelling, and you are not charged for time you can no longer access.
+      </PolicySection>
+      <PolicySection n={4} title="Your statutory rights">
+        Nothing in this policy limits any rights you have under South Africa's Consumer Protection Act or Electronic Communications and Transactions Act that cannot lawfully be excluded.
+      </PolicySection>
+      <PolicySection n={5} title="Contact">
+        For refund requests or billing disputes, contact us at the support address listed in the App.
+      </PolicySection>
+    </PolicyPage>
   );
 }
 
@@ -3897,6 +4053,17 @@ const TABS = [
 ];
 
 export default function App() {
+  // public policy pages — accessible without signing in, no hooks run for these
+  const path = window.location.pathname;
+  if (path === "/terms") return <TermsOfServicePage />;
+  if (path === "/privacy") return <PrivacyPolicyPage />;
+  if (path === "/cancellation-policy") return <CancellationPolicyPage />;
+  if (path === "/refund-policy") return <RefundPolicyPage />;
+
+  return <AppInner />;
+}
+
+function AppInner() {
   useGoogleFonts();
 
   const [session, setSession] = useState(undefined); // undefined = checking, null = signed out
