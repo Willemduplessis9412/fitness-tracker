@@ -94,6 +94,18 @@ const TOKENS = `
       width:100% !important; padding:16px !important; padding-top:64px !important;
     }
     .ft-responsive-grid{ grid-template-columns:1fr !important; }
+
+    .ft-auth-bar{ padding:14px 16px !important; }
+    .ft-auth-bar-inner{ justify-content:center !important; gap:10px !important; }
+    .ft-logo-mark svg{ width:22px !important; height:22px !important; }
+    .ft-logo-mark span{ font-size:16px !important; }
+    .ft-auth-fields{ justify-content:center !important; }
+    .ft-auth-fields input{ width:100% !important; max-width:280px; }
+    .ft-auth-actions{ width:100%; justify-content:center !important; }
+    .ft-auth-actions button{ flex:1; }
+
+    .ft-phone-hero-wrap{ height:280px !important; overflow:hidden !important; width:100% !important; display:flex !important; justify-content:center !important; }
+    .ft-phone-hero{ transform:scale(0.62); transform-origin:top center; }
   }
 `;
 
@@ -557,14 +569,14 @@ function AuthScreen() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", background: "#000", overflowX: "hidden" }}>
-      <div style={{ width: "100%", background: "#fff", borderBottom: "1px solid var(--line)" }}>
-        <div style={{ maxWidth: 1400, margin: "0 auto", padding: "16px 24px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+      <div className="ft-auth-bar" style={{ width: "100%", background: "#fff", borderBottom: "1px solid var(--line)" }}>
+        <div className="ft-auth-bar-inner" style={{ maxWidth: 1400, margin: "0 auto", padding: "16px 24px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <div className="ft-logo-mark" style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
             <Activity color="var(--ink)" size={33} />
             <span style={{ fontSize: 24, fontWeight: 700, fontFamily: "Georgia, serif", letterSpacing: "0.03em", textTransform: "uppercase", color: "var(--ink)" }}>FIT DATA</span>
           </div>
 
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, flex: "1 1 300px", justifyContent: "center" }}>
+          <div className="ft-auth-fields" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, flex: "1 1 300px", justifyContent: "center" }}>
             {mode === "signup" && (
               <input className="ft-input" placeholder="Name" style={{ width: 140 }} value={name} onChange={(e) => setName(e.target.value)} />
             )}
@@ -581,7 +593,7 @@ function AuthScreen() {
             )}
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+          <div className="ft-auth-actions" style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
             <button
               className="ft-btn"
               style={{ fontSize: 13, padding: "9px 16px" }}
@@ -717,10 +729,12 @@ function AppShowcase() {
         <div style={{ maxWidth: 1400, width: "100%", margin: "0 auto" }}>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 36 }}>
             <div>
-              <div style={{ position: "relative", height: 630, width: 510, flexShrink: 0 }}>
-                <PhoneMockup src="/screenshots/food-log.png" rotate={-12} x={-142} y={30} z={1} size={225} />
-                <PhoneMockup src="/screenshots/workout-log.png" rotate={12} x={82} y={30} z={1} size={225} />
-                <PhoneMockup src="/screenshots/dashboard.png" rotate={0} x={-30} y={0} z={3} size={255} />
+              <div className="ft-phone-hero-wrap">
+                <div className="ft-phone-hero" style={{ position: "relative", height: 630, width: 510, flexShrink: 0 }}>
+                  <PhoneMockup src="/screenshots/food-log.png" rotate={-12} x={-142} y={30} z={1} size={225} />
+                  <PhoneMockup src="/screenshots/workout-log.png" rotate={12} x={82} y={30} z={1} size={225} />
+                  <PhoneMockup src="/screenshots/dashboard.png" rotate={0} x={-30} y={0} z={3} size={255} />
+                </div>
               </div>
               <p style={{ textAlign: "center", fontSize: 18, color: "rgba(255,255,255,.5)", marginTop: 36, textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 Everything you need to track your training
@@ -1738,26 +1752,6 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
   const [customCal, setCustomCal] = useState(200);
   const [distanceKm, setDistanceKm] = useState(5);
   const [effort, setEffort] = useState(70);
-  const [proofImage, setProofImage] = useState(null);
-  const [proofError, setProofError] = useState("");
-
-  const handleProofFile = (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setProofError("");
-    if (!file.type.startsWith("image/")) {
-      setProofError("Please choose an image file.");
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      setProofError("Image is too big — please use one under 2MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => setProofImage(reader.result);
-    reader.readAsDataURL(file);
-  };
 
   const [showCustom, setShowCustom] = useState(false);
   const [customExercises, setCustomExercises] = useState([
@@ -1857,9 +1851,7 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
     const calsBurned = Math.round(baseCal * (Number(effort) / 100));
     // training points: reward duration weighted by how hard you pushed
     const points = Math.round(Number(duration) * (Number(effort) / 100));
-    if (proofImage) extra.proof = proofImage;
     addEntry({ id: `${Date.now()}`, type, duration: Number(duration), calsBurned, effort: Number(effort), points, ...extra });
-    setProofImage(null);
   };
 
   const totalMinutes = entries.reduce((s, e) => s + e.duration, 0);
@@ -2060,24 +2052,6 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
             </p>
           </div>
 
-          <div style={{ marginBottom: 10 }}>
-            <input id="proof-upload-input" type="file" accept="image/*" onChange={handleProofFile} style={{ display: "none" }} />
-            {proofImage ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <img src={proofImage} alt="Proof" style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 4, border: "1px solid var(--line)" }} />
-                <span style={{ fontSize: 12, color: "var(--ink-soft)", flex: 1 }}>Proof attached</span>
-                <button type="button" className="ft-btn-outline ft-btn" style={{ padding: "6px 10px", fontSize: 12 }} onClick={() => setProofImage(null)}>
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            ) : (
-              <label htmlFor="proof-upload-input" className="ft-btn-outline ft-btn" style={{ width: "100%", justifyContent: "center", cursor: "pointer" }}>
-                <Share2 size={13} /> Upload Proof
-              </label>
-            )}
-            {proofError && <p style={{ fontSize: 11, color: "var(--warn)", margin: "6px 0 0" }}>{proofError}</p>}
-          </div>
-
           <button className="ft-btn" style={{ width: "100%", justifyContent: "center", marginTop: 8 }} onClick={handleAdd}>
             <Plus size={15} /> Add workout
           </button>
@@ -2135,11 +2109,6 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
                         );
                       })}
                     </div>
-                  )}
-                  {e.proof && (
-                    <a href={e.proof} target="_blank" rel="noopener noreferrer">
-                      <img src={e.proof} alt="Proof" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 4, border: "1px solid var(--line)", marginTop: 8 }} />
-                    </a>
                   )}
                 </div>
                 <button className="ft-btn-outline ft-btn" style={{ padding: 6, flexShrink: 0 }} onClick={() => removeEntry(e.id)} aria-label="Remove entry">
@@ -2900,6 +2869,14 @@ function targetStatus3(value, target, loggedDays) {
   if (pct < 90) return { label: "Under", color: "var(--carb)" };
   return { label: "Met", color: "var(--good)" };
 }
+function targetStatusProtein(value, target, loggedDays) {
+  // going over on protein is fine (good, even) — only under-target should ever warn
+  if (loggedDays === 0) return { label: "Not logged", color: "var(--line-strong)" };
+  if (!target) return { label: "No target", color: "var(--ink-soft)" };
+  const pct = (value / target) * 100;
+  if (pct < 90) return { label: "Under", color: "var(--carb)" };
+  return { label: "Met", color: "var(--good)" };
+}
 function targetStatus2(value, target, hasData) {
   if (!hasData) return { label: "Not logged", color: "var(--line-strong)" };
   if (!target) return { label: "No target", color: "var(--ink-soft)" };
@@ -2907,6 +2884,12 @@ function targetStatus2(value, target, hasData) {
 }
 
 function ReportChart({ title, data, dataKey, target, targetKey, unit, colorFn }) {
+  // the Y-axis must account for the target line too, not just the bars — otherwise
+  // a target higher than every logged bar renders above the visible chart area
+  const targetMax = targetKey
+    ? Math.max(0, ...data.map((d) => Number(d[targetKey]) || 0))
+    : (Number(target) || 0);
+
   return (
     <div className="ft-card">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
@@ -2918,7 +2901,7 @@ function ReportChart({ title, data, dataKey, target, targetKey, unit, colorFn })
           <ComposedChart data={data} margin={{ top: 6, right: 6, left: -18, bottom: 0 }}>
             <CartesianGrid stroke="var(--line)" vertical={false} />
             <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--ink-soft)" }} interval={data.length > 10 ? Math.floor(data.length / 8) : 0} />
-            <YAxis tick={{ fontSize: 10, fill: "var(--ink-soft)" }} />
+            <YAxis tick={{ fontSize: 10, fill: "var(--ink-soft)" }} domain={[0, (dataMax) => Math.ceil(Math.max(dataMax, targetMax) * 1.1)]} />
             <Tooltip formatter={(v) => [`${v}${unit}`, title]} />
             {targetKey ? (
               <Line type="stepAfter" dataKey={targetKey} stroke="var(--work)" strokeWidth={1.5} strokeDasharray="4 4" dot={false} legendType="none" />
@@ -3041,7 +3024,7 @@ function ReportPanel({ rawSeries, goals }) {
 
       <div ref={chartsRef} className="ft-responsive-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
         <ReportChart title="Calories" data={buckets} dataKey="calAvg" target={goals.calories} unit=" kcal" colorFn={(d) => targetStatus3(d.calAvg, goals.calories, d.loggedDays).color} />
-        <ReportChart title="Protein" data={buckets} dataKey="pAvg" target={goals.protein} unit="g" colorFn={(d) => targetStatus3(d.pAvg, goals.protein, d.loggedDays).color} />
+        <ReportChart title="Protein" data={buckets} dataKey="pAvg" target={goals.protein} unit="g" colorFn={(d) => targetStatusProtein(d.pAvg, goals.protein, d.loggedDays).color} />
         <ReportChart title="Carbs" data={buckets} dataKey="cAvg" target={goals.carb} unit="g" colorFn={(d) => targetStatus3(d.cAvg, goals.carb, d.loggedDays).color} />
         <ReportChart title="Fat" data={buckets} dataKey="fAvg" target={goals.fat} unit="g" colorFn={(d) => targetStatus3(d.fAvg, goals.fat, d.loggedDays).color} />
         <ReportChart
