@@ -556,76 +556,64 @@ function AuthScreen() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", padding: "48px 24px", background: "#000", overflowX: "hidden" }}>
-      <div className="ft-card" style={{ maxWidth: 440, width: "100%" }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, marginBottom: 20 }}>
-          <Activity color="var(--ink)" size={60} />
-          <span style={{ fontSize: 60, fontWeight: 700, fontFamily: "Georgia, serif", letterSpacing: "0.03em", textTransform: "uppercase", color: "var(--ink)", textAlign: "center" }}>FIT DATA</span>
-        </div>
-        <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 0, marginBottom: 20, textAlign: "center" }}>
-          {mode === "signup" ? "Create an account to start tracking your training."
-            : mode === "reset" ? "Enter your email and we'll send you a reset link."
-            : "Sign in to track your training."}
-        </p>
-
-        {mode === "signup" && (
-          <div style={{ marginBottom: 14 }}>
-            <label className="ft-label">Name</label>
-            <input className="ft-input" placeholder="Jordan Ellis" value={name} onChange={(e) => setName(e.target.value)} />
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", background: "#000", overflowX: "hidden" }}>
+      <div style={{ width: "100%", background: "#fff", borderBottom: "1px solid var(--line)" }}>
+        <div style={{ maxWidth: 1400, margin: "0 auto", padding: "16px 24px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <Activity color="var(--ink)" size={33} />
+            <span style={{ fontSize: 24, fontWeight: 700, fontFamily: "Georgia, serif", letterSpacing: "0.03em", textTransform: "uppercase", color: "var(--ink)" }}>FIT DATA</span>
           </div>
-        )}
-        <div style={{ marginBottom: mode === "reset" ? 20 : 14 }}>
-          <label className="ft-label">Email</label>
-          <input className="ft-input" type="email" placeholder="jordan@example.com" value={email} onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && mode === "reset") handleSubmit(); }} />
-        </div>
-        {mode !== "reset" && (
-          <div style={{ marginBottom: 8 }}>
-            <label className="ft-label">Password</label>
-            <input className="ft-input" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }} />
-          </div>
-        )}
-        {mode === "signin" && (
-          <p style={{ textAlign: "right", margin: "0 0 20px" }}>
-            <a href="#" onClick={(e) => { e.preventDefault(); switchMode("reset"); }} style={{ fontSize: 12, color: "var(--ink-soft)" }}>
-              Forgot password?
-            </a>
-          </p>
-        )}
-        {mode === "signup" && <div style={{ marginBottom: 20 }} />}
 
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, flex: "1 1 300px", justifyContent: "center" }}>
+            {mode === "signup" && (
+              <input className="ft-input" placeholder="Name" style={{ width: 140 }} value={name} onChange={(e) => setName(e.target.value)} />
+            )}
+            <input className="ft-input" type="email" placeholder="jordan@example.com" style={{ width: 200 }} value={email} onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && mode === "reset") handleSubmit(); }} />
+            {mode !== "reset" && (
+              <input className="ft-input" type="password" placeholder="••••••••" style={{ width: 160 }} value={password} onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }} />
+            )}
+            {mode === "signin" && (
+              <a href="#" onClick={(e) => { e.preventDefault(); switchMode("reset"); }} style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
+                Forgot password?
+              </a>
+            )}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+            <button
+              className="ft-btn"
+              style={{ fontSize: 13, padding: "9px 16px" }}
+              disabled={busy || !email.trim() || (mode !== "reset" && !password) || (mode === "signup" && !name.trim())}
+              onClick={handleSubmit}
+            >
+              {busy ? "Please wait…" : mode === "signup" ? "Create account" : mode === "reset" ? "Send reset link" : "Sign in"} <ChevronRight size={15} />
+            </button>
+            <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
+              {mode === "signup" ? (
+                <>Have an account?{" "}
+                  <a href="#" onClick={(e) => { e.preventDefault(); switchMode("signin"); }} style={{ color: "var(--ink)" }}>Sign in</a>
+                </>
+              ) : mode === "reset" ? (
+                <>Remembered it?{" "}
+                  <a href="#" onClick={(e) => { e.preventDefault(); switchMode("signin"); }} style={{ color: "var(--ink)" }}>Sign in</a>
+                </>
+              ) : (
+                <>No account?{" "}
+                  <a href="#" onClick={(e) => { e.preventDefault(); switchMode("signup"); }} style={{ color: "var(--ink)" }}>Create one</a>
+                </>
+              )}
+            </span>
+          </div>
+        </div>
         {error && (
-          <p style={{ fontSize: 12, color: "var(--warn)", marginTop: -10, marginBottom: 16 }}>{error}</p>
+          <p style={{ fontSize: 12, color: "var(--warn)", textAlign: "center", padding: "0 24px 12px", margin: 0 }}>{error}</p>
         )}
-
-        <button
-          className="ft-btn"
-          style={{ width: "100%", justifyContent: "center" }}
-          disabled={busy || !email.trim() || (mode !== "reset" && !password) || (mode === "signup" && !name.trim())}
-          onClick={handleSubmit}
-        >
-          {busy ? "Please wait…" : mode === "signup" ? "Create account" : mode === "reset" ? "Send reset link" : "Sign in"} <ChevronRight size={15} />
-        </button>
-
-        <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 16, marginBottom: 0, textAlign: "center" }}>
-          {mode === "signup" ? (
-            <>Already have an account?{" "}
-              <a href="#" onClick={(e) => { e.preventDefault(); switchMode("signin"); }} style={{ color: "var(--ink)" }}>Sign in</a>
-            </>
-          ) : mode === "reset" ? (
-            <>Remembered it?{" "}
-              <a href="#" onClick={(e) => { e.preventDefault(); switchMode("signin"); }} style={{ color: "var(--ink)" }}>Sign in</a>
-            </>
-          ) : (
-            <>No account yet?{" "}
-              <a href="#" onClick={(e) => { e.preventDefault(); switchMode("signup"); }} style={{ color: "var(--ink)" }}>Create one</a>
-            </>
-          )}
-        </p>
       </div>
       <AppShowcase />
 
+      <div style={{ width: "100%", display: "flex", justifyContent: "center", padding: "0 24px 48px" }}>
       <footer style={{ display: "flex", flexWrap: "wrap", gap: 18, justifyContent: "center", marginTop: 56, paddingTop: 24, borderTop: "1px solid rgba(255,255,255,.1)" }}>
         {[
           { label: "Cancellation Policy", href: "/cancellation-policy" },
@@ -638,6 +626,7 @@ function AuthScreen() {
           </a>
         ))}
       </footer>
+      </div>
     </div>
   );
 }
@@ -689,19 +678,19 @@ function InstallShortcutButton() {
   };
 
   return (
-    <div style={{ textAlign: "center", maxWidth: 220 }}>
+    <div style={{ textAlign: "center", maxWidth: 330 }}>
       <button
         className="ft-btn"
-        style={{ justifyContent: "center", width: "100%", background: "#fff", color: "#000", border: "none" }}
+        style={{ justifyContent: "center", width: "100%", background: "#fff", color: "#000", border: "none", fontSize: 21, padding: "15px 27px" }}
         onClick={handleClick}
       >
-        <Download size={15} /> Download Shortcut
+        <Download size={22} /> Download Shortcut
       </button>
-      <p style={{ fontSize: 11, color: "rgba(255,255,255,.5)", marginTop: 10 }}>
+      <p style={{ fontSize: 17, color: "rgba(255,255,255,.5)", marginTop: 15 }}>
         Adds a Fit Data icon to your home screen — opens like an app, no app store needed.
       </p>
       {showHint && (
-        <p style={{ fontSize: 12, color: "#fff", marginTop: 10, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.14)", borderRadius: 8, padding: 10 }}>
+        <p style={{ fontSize: 18, color: "#fff", marginTop: 15, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.14)", borderRadius: 12, padding: 15 }}>
           {isIOS
             ? <>On iPhone: tap the <strong>Share</strong> icon in Safari, then <strong>"Add to Home Screen."</strong></>
             : <>Look for <strong>"Install app"</strong> or <strong>"Add to Home Screen"</strong> in your browser's menu.</>}
@@ -713,50 +702,81 @@ function InstallShortcutButton() {
 
 function AppShowcase() {
   const features = [
-    { icon: Flame, title: "Log Your Food", desc: "Track calories, protein, carbs and fat for every meal in seconds." },
-    { icon: Dumbbell, title: "Log Your Workouts", desc: "Record exercises, sets, reps, and effort — or just the essentials." },
-    { icon: TrendingUp, title: "Track Your Fitness Journey", desc: "Daily and weekly reports show your progress at a glance." },
-    { icon: Target, title: "Goal Setting", desc: "Set calorie, macro, and training targets tailored to you." },
-    { icon: Activity, title: "Measurements Tracking", desc: "Log InBody scans and body measurements over time." },
-    { icon: Calendar, title: "Data Tracking", desc: "Every entry is stored securely and always available to you." },
+    { icon: Flame, shot: "/screenshots/food-log.png", title: "Log Your Food", desc: "Track calories, protein, carbs and fat for every meal in seconds." },
+    { icon: Dumbbell, shot: "/screenshots/workout-log.png", title: "Log Your Workouts", desc: "Record exercises, sets, reps, and effort — or just the essentials." },
+    { icon: TrendingUp, shot: "/screenshots/dashboard.png", title: "Track Your Fitness Journey", desc: "Daily and monthly reports show your progress at a glance." },
+    { icon: Target, shot: "/screenshots/goals.png", title: "Goal Setting", desc: "Set calorie, macro, and training targets tailored to you." },
+    { icon: Activity, shot: "/screenshots/measurements.png", title: "Measurements Tracking", desc: "Log InBody scans and body measurements over time." },
+    { icon: Activity, shot: "/screenshots/steps.png", title: "Log Your Steps", desc: "Track your daily step count against your target, and see the last 7 days at a glance." },
+    { icon: Trophy, shot: "/screenshots/fitness-test.png", title: "Fitness Test", desc: "Track any exercise you want — strength, distance, or time — and watch your results improve over time." },
   ];
 
   return (
-    <div style={{ maxWidth: 1000, width: "100%", marginTop: 56, overflow: "hidden" }}>
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 24, marginBottom: 40 }}>
-        <div>
-          <div style={{ position: "relative", height: 420, width: 340, flexShrink: 0 }}>
-            <PhoneMockup src="/screenshots/food-log.png" rotate={-12} x={-95} y={20} z={1} size={150} />
-            <PhoneMockup src="/screenshots/workout-log.png" rotate={12} x={55} y={20} z={1} size={150} />
-            <PhoneMockup src="/screenshots/dashboard.png" rotate={0} x={-20} y={0} z={3} size={170} />
+    <>
+      <div style={{ width: "100%", padding: "0 24px", overflow: "hidden" }}>
+        <div style={{ maxWidth: 1400, width: "100%", margin: "0 auto" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 36 }}>
+            <div>
+              <div style={{ position: "relative", height: 630, width: 510, flexShrink: 0 }}>
+                <PhoneMockup src="/screenshots/food-log.png" rotate={-12} x={-142} y={30} z={1} size={225} />
+                <PhoneMockup src="/screenshots/workout-log.png" rotate={12} x={82} y={30} z={1} size={225} />
+                <PhoneMockup src="/screenshots/dashboard.png" rotate={0} x={-30} y={0} z={3} size={255} />
+              </div>
+              <p style={{ textAlign: "center", fontSize: 18, color: "rgba(255,255,255,.5)", marginTop: 36, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Everything you need to track your training
+              </p>
+            </div>
+            <InstallShortcutButton />
           </div>
-          <p style={{ textAlign: "center", fontSize: 12, color: "rgba(255,255,255,.5)", marginTop: 24, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-            Everything you need to track your training
-          </p>
         </div>
-        <InstallShortcutButton />
       </div>
 
-      <div className="ft-responsive-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
-        {features.map((f) => (
-          <div
-            key={f.title}
-            style={{
-              display: "flex", gap: 14, alignItems: "flex-start", padding: 18,
-              border: "1px solid rgba(255,255,255,.16)", borderRadius: 18, background: "rgba(255,255,255,.04)",
-            }}
-          >
-            <div style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 10, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.14)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <f.icon size={18} color="#fff" />
-            </div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 4 }}>{f.title}</div>
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,.55)", lineHeight: 1.5 }}>{f.desc}</div>
-            </div>
+      <div
+        style={{
+          width: "100%", background: "#fff", marginTop: 80,
+          borderTop: "1px solid rgba(255,255,255,.15)", padding: "72px 24px",
+        }}
+      >
+        <div style={{ maxWidth: 820, margin: "0 auto" }}>
+          <h2 className="ft-display" style={{ fontSize: 34, fontWeight: 700, color: "var(--ink)", textAlign: "center", marginTop: 0, marginBottom: 56, textTransform: "uppercase" }}>
+            Features
+          </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 56 }}>
+            {features.map((f) => (
+              <div key={f.title} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 40 }}>
+                <div style={{ flexShrink: 0 }}>
+                  {f.shot ? (
+                    <div
+                      style={{
+                        width: 150, aspectRatio: "9 / 19.5", borderRadius: 30, padding: 8,
+                        background: "linear-gradient(160deg, #dcdcdc, #808080 40%, #a8a8a8 60%, #555)",
+                        boxShadow: "0 18px 40px rgba(0,0,0,.25), 0 0 0 1px rgba(0,0,0,.08)", position: "relative",
+                      }}
+                    >
+                      <div style={{ position: "absolute", top: 17, left: "50%", transform: "translateX(-50%)", width: 8, height: 8, borderRadius: "50%", background: "#6a6a6a", boxShadow: "inset 0 1px 2px rgba(0,0,0,.5)", zIndex: 2 }} />
+                      <div style={{ width: "100%", height: "100%", borderRadius: 22, overflow: "hidden", background: "#000" }}>
+                        <img src={f.shot} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top", display: "block" }} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ width: 90, height: 90, borderRadius: 22, background: "var(--bg)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <f.icon size={36} color="var(--ink)" />
+                    </div>
+                  )}
+                </div>
+                <div style={{ flex: "1 1 280px", maxWidth: 380 }}>
+                  <div style={{ width: 56, height: 56, borderRadius: 14, background: "var(--bg)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+                    <f.icon size={24} color="var(--ink)" />
+                  </div>
+                  <div style={{ fontSize: 24, fontWeight: 600, color: "var(--ink)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.02em" }}>{f.title}</div>
+                  <div style={{ fontSize: 18, color: "var(--ink-soft)", lineHeight: 1.6 }}>{f.desc}</div>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -1718,6 +1738,26 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
   const [customCal, setCustomCal] = useState(200);
   const [distanceKm, setDistanceKm] = useState(5);
   const [effort, setEffort] = useState(70);
+  const [proofImage, setProofImage] = useState(null);
+  const [proofError, setProofError] = useState("");
+
+  const handleProofFile = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setProofError("");
+    if (!file.type.startsWith("image/")) {
+      setProofError("Please choose an image file.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setProofError("Image is too big — please use one under 2MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setProofImage(reader.result);
+    reader.readAsDataURL(file);
+  };
 
   const [showCustom, setShowCustom] = useState(false);
   const [customExercises, setCustomExercises] = useState([
@@ -1817,7 +1857,9 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
     const calsBurned = Math.round(baseCal * (Number(effort) / 100));
     // training points: reward duration weighted by how hard you pushed
     const points = Math.round(Number(duration) * (Number(effort) / 100));
+    if (proofImage) extra.proof = proofImage;
     addEntry({ id: `${Date.now()}`, type, duration: Number(duration), calsBurned, effort: Number(effort), points, ...extra });
+    setProofImage(null);
   };
 
   const totalMinutes = entries.reduce((s, e) => s + e.duration, 0);
@@ -2017,6 +2059,25 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
               How hard you actually pushed. Scales the calorie estimate and your training points.
             </p>
           </div>
+
+          <div style={{ marginBottom: 10 }}>
+            <input id="proof-upload-input" type="file" accept="image/*" onChange={handleProofFile} style={{ display: "none" }} />
+            {proofImage ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <img src={proofImage} alt="Proof" style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 4, border: "1px solid var(--line)" }} />
+                <span style={{ fontSize: 12, color: "var(--ink-soft)", flex: 1 }}>Proof attached</span>
+                <button type="button" className="ft-btn-outline ft-btn" style={{ padding: "6px 10px", fontSize: 12 }} onClick={() => setProofImage(null)}>
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            ) : (
+              <label htmlFor="proof-upload-input" className="ft-btn-outline ft-btn" style={{ width: "100%", justifyContent: "center", cursor: "pointer" }}>
+                <Share2 size={13} /> Upload Proof
+              </label>
+            )}
+            {proofError && <p style={{ fontSize: 11, color: "var(--warn)", margin: "6px 0 0" }}>{proofError}</p>}
+          </div>
+
           <button className="ft-btn" style={{ width: "100%", justifyContent: "center", marginTop: 8 }} onClick={handleAdd}>
             <Plus size={15} /> Add workout
           </button>
@@ -2074,6 +2135,11 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
                         );
                       })}
                     </div>
+                  )}
+                  {e.proof && (
+                    <a href={e.proof} target="_blank" rel="noopener noreferrer">
+                      <img src={e.proof} alt="Proof" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 4, border: "1px solid var(--line)", marginTop: 8 }} />
+                    </a>
                   )}
                 </div>
                 <button className="ft-btn-outline ft-btn" style={{ padding: 6, flexShrink: 0 }} onClick={() => removeEntry(e.id)} aria-label="Remove entry">
