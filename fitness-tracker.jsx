@@ -380,6 +380,46 @@ async function storeSet(key, value) {
   }
 }
 
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+// subscribes this device to Web Push and stores the subscription so
+// send-checkin-reminders (a scheduled Supabase Edge Function) can reach it
+async function subscribeToPush(userId) {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || typeof Notification === "undefined") return false;
+  const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+  if (!vapidPublicKey) return false;
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") return false;
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+      });
+    }
+    const json = sub.toJSON();
+    const { error } = await supabase.from("push_subscriptions").upsert({
+      user_id: userId,
+      endpoint: json.endpoint,
+      p256dh: json.keys.p256dh,
+      auth: json.keys.auth,
+    }, { onConflict: "endpoint" });
+    return !error;
+  } catch (e) {
+    console.error("push subscribe failed", e);
+    return false;
+  }
+}
+
 function todayStr(offset = 0) {
   const d = new Date();
   d.setDate(d.getDate() + offset);
@@ -1527,6 +1567,7 @@ function GoalsScreen({ goals, setGoals, profile, milestones, addMilestone, toggl
 /* ---------------------------------------------------------------------- */
 
 function FoodLogScreen({ date, setDate, entries, addEntry, removeEntry, goals, customFoods, addCustomFood }) {
+  const logRef = useRef(null);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(FOOD_DB[0].name);
   const [grams, setGrams] = useState(100);
@@ -1707,13 +1748,13 @@ function FoodLogScreen({ date, setDate, entries, addEntry, removeEntry, goals, c
             <h3 className="ft-display" style={{ margin: 0, fontSize: 16 }}>Logged for {fmtShort(date)}</h3>
             {entries.length > 0 && (
               <ShareDownloadButtons
-                onGetCanvas={() => drawInbodyCanvas({
-                  title: "Food Log", subtitle: fmtShort(date),
-                  rows: [
-                    { label: "Total", value: `${entries.reduce((s, e) => s + e.cal, 0)} kcal` },
-                    ...entries.map((e) => ({ label: `${e.food} (${e.grams}g)`, value: `${e.cal} kcal` })),
-                  ],
-                })}
+                onGetCanvas={() =>
+                  captureElementCanvas(logRef.current, { title: `Food Log — ${fmtShort(date)}` })
+                    .catch(() => {
+                      alert("Couldn't capture this screen as an image in this browser. Try again, or use Download / Print instead.");
+                      return null;
+                    })
+                }
                 filename={`food-log-${date}.png`}
                 shareTitle="My food log"
                 shareText={`${entries.length} items logged, ${entries.reduce((s, e) => s + e.cal, 0)} kcal total`}
@@ -1721,7 +1762,7 @@ function FoodLogScreen({ date, setDate, entries, addEntry, removeEntry, goals, c
             )}
           </div>
           {entries.length === 0 && <p style={{ fontSize: 13, color: "var(--ink-soft)" }}>Nothing logged yet for this day.</p>}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div ref={logRef} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {entries.map((e) => (
               <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
                 <div>
@@ -1747,6 +1788,7 @@ function FoodLogScreen({ date, setDate, entries, addEntry, removeEntry, goals, c
 /* ---------------------------------------------------------------------- */
 
 function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weightKg }) {
+  const logRef = useRef(null);
   const [type, setType] = useState(WORKOUT_TYPES[0].name);
   const [duration, setDuration] = useState(30);
   const [customCal, setCustomCal] = useState(200);
@@ -2069,13 +2111,13 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
             <h3 className="ft-display" style={{ margin: 0, fontSize: 16 }}>Logged for {fmtShort(date)}</h3>
             {entries.length > 0 && (
               <ShareDownloadButtons
-                onGetCanvas={() => drawInbodyCanvas({
-                  title: "Workout Log", subtitle: fmtShort(date),
-                  rows: [
-                    { label: "Total", value: `${entries.reduce((s, e) => s + e.duration, 0)} min · ${entries.reduce((s, e) => s + e.calsBurned, 0)} kcal` },
-                    ...entries.map((e) => ({ label: e.type, value: `${e.duration ? `${e.duration} min · ` : ""}${e.calsBurned} kcal` })),
-                  ],
-                })}
+                onGetCanvas={() =>
+                  captureElementCanvas(logRef.current, { title: `Workout Log — ${fmtShort(date)}` })
+                    .catch(() => {
+                      alert("Couldn't capture this screen as an image in this browser. Try again, or use Download / Print instead.");
+                      return null;
+                    })
+                }
                 filename={`workout-log-${date}.png`}
                 shareTitle="My workout log"
                 shareText={`${entries.length} workout${entries.length === 1 ? "" : "s"} logged`}
@@ -2083,7 +2125,7 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
             )}
           </div>
           {entries.length === 0 && <p style={{ fontSize: 13, color: "var(--ink-soft)" }}>No workouts logged for this day.</p>}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div ref={logRef} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {entries.map((e) => (
               <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "8px 0", borderBottom: "1px solid var(--line)" }}>
                 <div style={{ flex: 1 }}>
@@ -2124,6 +2166,7 @@ function WorkoutLogScreen({ date, setDate, entries, addEntry, removeEntry, weigh
 }
 
 function LogStepsScreen({ date, setDate, stepsByDate, setSteps, stepsGoal }) {
+  const weekRef = useRef(null);
   const [stepsInput, setStepsInput] = useState((stepsByDate && stepsByDate[date]) || "");
   useEffect(() => { setStepsInput((stepsByDate && stepsByDate[date]) || ""); }, [date, stepsByDate]);
 
@@ -2142,13 +2185,13 @@ function LogStepsScreen({ date, setDate, stepsByDate, setSteps, stepsGoal }) {
           </p>
         </div>
         <ShareDownloadButtons
-          onGetCanvas={() => drawInbodyCanvas({
-            title: "Steps", subtitle: `Last 7 days · target ${stepsGoal || 8000}`,
-            rows: dateList.slice().reverse().map((d) => ({
-              label: fmtShort(d) + (d === todayStr() ? " (today)" : ""),
-              value: `${(stepsByDate && stepsByDate[d]) || 0}`,
-            })),
-          })}
+          onGetCanvas={() =>
+            captureElementCanvas(weekRef.current, { title: "Steps — Last 7 days" })
+              .catch(() => {
+                alert("Couldn't capture this screen as an image in this browser. Try again, or use Download / Print instead.");
+                return null;
+              })
+          }
           filename={`steps-${todayStr()}.png`}
           shareTitle="My steps"
           shareText={`${todayCount} steps today, target ${stepsGoal || 8000}`}
@@ -2181,7 +2224,7 @@ function LogStepsScreen({ date, setDate, stepsByDate, setSteps, stepsGoal }) {
           </div>
         </div>
 
-        <div className="ft-card">
+        <div className="ft-card" ref={weekRef}>
           <h3 className="ft-display" style={{ marginTop: 0, fontSize: 16 }}>Last 7 days</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {dateList.slice().reverse().map((d) => {
@@ -2248,45 +2291,8 @@ function MiniTrendChart({ title, data, dataKey, color, unit, hideTitle = false }
   );
 }
 
-function drawInbodyCanvas({ title, subtitle, rows }) {
-  const canvas = document.createElement("canvas");
-  const W = 800, H = 620;
-  canvas.width = W; canvas.height = H;
-  const ctx = canvas.getContext("2d");
-
-  ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = "#DADAD5"; ctx.lineWidth = 2; ctx.strokeRect(20, 20, W - 40, H - 40);
-
-  ctx.textAlign = "center";
-  ctx.fillStyle = "#1E1E1C"; ctx.font = "600 14px Inter, sans-serif";
-  ctx.fillText("FIT DATA", W / 2, 70);
-  ctx.fillStyle = "#141414"; ctx.font = "700 28px Georgia, serif";
-  ctx.fillText(title, W / 2, 108);
-  if (subtitle) {
-    ctx.font = "400 14px Inter, sans-serif"; ctx.fillStyle = "#1E1E1C";
-    ctx.fillText(subtitle, W / 2, 132);
-  }
-  ctx.strokeStyle = "#141414"; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(60, 150); ctx.lineTo(W - 60, 150); ctx.stroke();
-
-  let y = 210;
-  rows.forEach((r) => {
-    ctx.strokeStyle = "#DADAD5"; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(60, y + 30); ctx.lineTo(W - 60, y + 30); ctx.stroke();
-    ctx.textAlign = "left"; ctx.fillStyle = "#1E1E1C"; ctx.font = "500 16px Inter, sans-serif";
-    ctx.fillText(r.label, 60, y);
-    ctx.textAlign = "right"; ctx.fillStyle = "#141414"; ctx.font = "700 20px 'IBM Plex Mono', monospace";
-    ctx.fillText(r.value, W - 60, y + 2);
-    y += 58;
-  });
-
-  ctx.textAlign = "center"; ctx.fillStyle = "#1E1E1C"; ctx.font = "400 11px Inter, sans-serif";
-  ctx.fillText("Made with FIT DATA", W / 2, H - 30);
-
-  return canvas;
-}
-
 function InBodyBlock({ scans, addScan, removeScan }) {
+  const trendsRef = useRef(null);
   const [form, setForm] = useState({ weight: "", muscleMass: "", fatMass: "", fatPct: "" });
 
   const handleSave = () => {
@@ -2305,17 +2311,11 @@ function InBodyBlock({ scans, addScan, removeScan }) {
   const chartData = sorted.map((s) => ({ date: fmtShort(s.date), Weight: s.weight, Muscle: s.muscleMass, FatMass: s.fatMass, FatPct: s.fatPct }));
   const latest = sorted[sorted.length - 1];
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (!latest) return;
-    const canvas = drawInbodyCanvas({
-      title: "InBody Results",
-      subtitle: fmtShort(latest.date),
-      rows: [
-        { label: "Weight", value: `${latest.weight} kg` },
-        { label: "Skeletal muscle mass", value: `${latest.muscleMass} kg` },
-        { label: "Fat mass", value: `${latest.fatMass} kg` },
-        { label: "Body fat percentage", value: `${latest.fatPct}%` },
-      ],
+    const canvas = await captureElementCanvas(trendsRef.current, { title: "InBody Results" }).catch(() => {
+      alert("Couldn't capture the charts as an image in this browser. Try again, or use Download / Print instead.");
+      return null;
     });
     shareOrDownloadCanvas(canvas, `inbody-results-${latest.date}.png`, "My InBody results", `Weight ${latest.weight}kg · Muscle ${latest.muscleMass}kg · Fat ${latest.fatPct}%`);
   };
@@ -2380,49 +2380,51 @@ function InBodyBlock({ scans, addScan, removeScan }) {
           </div>
         </div>
 
-        {chartData.length > 1 ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 20 }}>
-            <MiniTrendChart title="Weight" data={chartData} dataKey="Weight" color="var(--cal)" unit="kg" />
-            <MiniTrendChart title="Skeletal muscle mass" data={chartData} dataKey="Muscle" color="var(--protein)" unit="kg" />
-            <MiniTrendChart title="Fat mass" data={chartData} dataKey="FatMass" color="var(--work)" unit="kg" />
-            <MiniTrendChart title="Body fat percentage" data={chartData} dataKey="FatPct" color="var(--warn)" unit="%" />
-          </div>
-        ) : (
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 20 }}>Log at least two scans to see trend charts.</p>
-        )}
+        <div ref={trendsRef}>
+          {chartData.length > 1 ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 20 }}>
+              <MiniTrendChart title="Weight" data={chartData} dataKey="Weight" color="var(--cal)" unit="kg" />
+              <MiniTrendChart title="Skeletal muscle mass" data={chartData} dataKey="Muscle" color="var(--protein)" unit="kg" />
+              <MiniTrendChart title="Fat mass" data={chartData} dataKey="FatMass" color="var(--work)" unit="kg" />
+              <MiniTrendChart title="Body fat percentage" data={chartData} dataKey="FatPct" color="var(--warn)" unit="%" />
+            </div>
+          ) : (
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 20 }}>Log at least two scans to see trend charts.</p>
+          )}
 
-        {sorted.length > 0 && (
-          <div style={{ marginTop: 20, overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-              <thead>
-                <tr style={{ borderBottom: "1px solid var(--line-strong)" }}>
-                  <th style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, textTransform: "uppercase", color: "var(--ink-soft)" }}>Date</th>
-                  <th style={{ textAlign: "right", padding: "6px 8px", fontSize: 10, textTransform: "uppercase", color: "var(--ink-soft)" }}>Weight</th>
-                  <th style={{ textAlign: "right", padding: "6px 8px", fontSize: 10, textTransform: "uppercase", color: "var(--ink-soft)" }}>Muscle</th>
-                  <th style={{ textAlign: "right", padding: "6px 8px", fontSize: 10, textTransform: "uppercase", color: "var(--ink-soft)" }}>Fat mass</th>
-                  <th style={{ textAlign: "right", padding: "6px 8px", fontSize: 10, textTransform: "uppercase", color: "var(--ink-soft)" }}>Fat %</th>
-                  <th style={{ width: 30 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.slice().reverse().map((s) => (
-                  <tr key={s.id} style={{ borderBottom: "1px solid var(--line)" }}>
-                    <td style={{ padding: "6px 8px" }}>{fmtShort(s.date)}</td>
-                    <td className="ft-mono" style={{ padding: "6px 8px", textAlign: "right" }}>{s.weight}kg</td>
-                    <td className="ft-mono" style={{ padding: "6px 8px", textAlign: "right" }}>{s.muscleMass}kg</td>
-                    <td className="ft-mono" style={{ padding: "6px 8px", textAlign: "right" }}>{s.fatMass}kg</td>
-                    <td className="ft-mono" style={{ padding: "6px 8px", textAlign: "right" }}>{s.fatPct}%</td>
-                    <td style={{ padding: "6px 8px" }}>
-                      <button className="ft-btn-outline ft-btn" style={{ padding: 4 }} onClick={() => removeScan(s.id)} aria-label="Remove scan">
-                        <Trash2 size={11} />
-                      </button>
-                    </td>
+          {sorted.length > 0 && (
+            <div style={{ marginTop: 20, overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--line-strong)" }}>
+                    <th style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, textTransform: "uppercase", color: "var(--ink-soft)" }}>Date</th>
+                    <th style={{ textAlign: "right", padding: "6px 8px", fontSize: 10, textTransform: "uppercase", color: "var(--ink-soft)" }}>Weight</th>
+                    <th style={{ textAlign: "right", padding: "6px 8px", fontSize: 10, textTransform: "uppercase", color: "var(--ink-soft)" }}>Muscle</th>
+                    <th style={{ textAlign: "right", padding: "6px 8px", fontSize: 10, textTransform: "uppercase", color: "var(--ink-soft)" }}>Fat mass</th>
+                    <th style={{ textAlign: "right", padding: "6px 8px", fontSize: 10, textTransform: "uppercase", color: "var(--ink-soft)" }}>Fat %</th>
+                    <th style={{ width: 30 }}></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {sorted.slice().reverse().map((s) => (
+                    <tr key={s.id} style={{ borderBottom: "1px solid var(--line)" }}>
+                      <td style={{ padding: "6px 8px" }}>{fmtShort(s.date)}</td>
+                      <td className="ft-mono" style={{ padding: "6px 8px", textAlign: "right" }}>{s.weight}kg</td>
+                      <td className="ft-mono" style={{ padding: "6px 8px", textAlign: "right" }}>{s.muscleMass}kg</td>
+                      <td className="ft-mono" style={{ padding: "6px 8px", textAlign: "right" }}>{s.fatMass}kg</td>
+                      <td className="ft-mono" style={{ padding: "6px 8px", textAlign: "right" }}>{s.fatPct}%</td>
+                      <td style={{ padding: "6px 8px" }}>
+                        <button className="ft-btn-outline ft-btn no-print" style={{ padding: 4 }} onClick={() => removeScan(s.id)} aria-label="Remove scan">
+                          <Trash2 size={11} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );
@@ -2431,6 +2433,7 @@ function InBodyBlock({ scans, addScan, removeScan }) {
 const COMMON_MEASUREMENTS = ["Waist", "Chest", "Hips", "Bicep (left)", "Bicep (right)", "Thigh (left)", "Thigh (right)", "Calf", "Neck", "Shoulders"];
 
 function MeasurementsBlock({ measurements, addMeasurement, removeMeasurement }) {
+  const listRef = useRef(null);
   const [form, setForm] = useState({ name: COMMON_MEASUREMENTS[0], customName: "", valueCm: "" });
   const [useCustom, setUseCustom] = useState(false);
 
@@ -2464,15 +2467,13 @@ function MeasurementsBlock({ measurements, addMeasurement, removeMeasurement }) 
         </div>
         {names.length > 0 && (
           <ShareDownloadButtons
-            onGetCanvas={() => drawInbodyCanvas({
-              title: "Measurements",
-              subtitle: new Date().toLocaleDateString(),
-              rows: names.map((name) => {
-                const entries = grouped[name];
-                const latest = entries[entries.length - 1];
-                return { label: `${name} (${fmtShort(latest.date)})`, value: `${latest.valueCm} cm` };
-              }),
-            })}
+            onGetCanvas={() =>
+              captureElementCanvas(listRef.current, { title: "Measurements" })
+                .catch(() => {
+                  alert("Couldn't capture this screen as an image in this browser. Try again, or use Download / Print instead.");
+                  return null;
+                })
+            }
             filename={`measurements-${todayStr()}.png`}
             shareTitle="My measurements"
             shareText={names.map((name) => `${name}: ${grouped[name][grouped[name].length - 1].valueCm}cm`).join(", ")}
@@ -2510,7 +2511,7 @@ function MeasurementsBlock({ measurements, addMeasurement, removeMeasurement }) 
       {names.length === 0 ? (
         <p style={{ fontSize: 13, color: "var(--ink-soft)" }}>No measurements logged yet.</p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div ref={listRef} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {names.map((name) => {
             const entries = grouped[name];
             const latest = entries[entries.length - 1];
@@ -2621,6 +2622,7 @@ function FitnessTestScreen({ exercises, addExercise, removeExercise, results, ad
 }
 
 function FitnessExerciseCard({ exercise, results, onLog, onRemove }) {
+  const resultsRef = useRef(null);
   const isTime = exercise.unit === "time";
   const isDistance = exercise.unit === "distance";
   const [value, setValue] = useState("");
@@ -2665,10 +2667,13 @@ function FitnessExerciseCard({ exercise, results, onLog, onRemove }) {
         <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
           {sorted.length > 0 && (
             <ShareDownloadButtons
-              onGetCanvas={() => drawInbodyCanvas({
-                title: exercise.name, subtitle: latest ? `Latest: ${fmtShort(latest.date)}` : undefined,
-                rows: sorted.slice().reverse().slice(0, 8).map((r) => ({ label: fmtShort(r.date), value: displayValue(r.value) })),
-              })}
+              onGetCanvas={() =>
+                captureElementCanvas(resultsRef.current, { title: exercise.name })
+                  .catch(() => {
+                    alert("Couldn't capture this screen as an image in this browser. Try again, or use Download / Print instead.");
+                    return null;
+                  })
+              }
               filename={`${exercise.name.replace(/\s+/g, "-").toLowerCase()}-results.png`}
               shareTitle={exercise.name}
               shareText={latest ? `Latest: ${displayValue(latest.value)}` : ""}
@@ -2724,44 +2729,46 @@ function FitnessExerciseCard({ exercise, results, onLog, onRemove }) {
         style={{ marginBottom: 12 }}
       />
 
-      {latest ? (
-        <div className="ft-card" style={{ background: "var(--bg)", padding: 10 }}>
-          <div className="ft-label" style={{ margin: 0 }}>Latest ({fmtShort(latest.date)})</div>
-          <div className="ft-mono" style={{ fontSize: 20, fontWeight: 600, marginTop: 2, color: "var(--work)" }}>{displayValue(latest.value)}</div>
-        </div>
-      ) : (
-        <p style={{ fontSize: 12, color: "var(--ink-soft)" }}>No results logged yet.</p>
-      )}
+      <div ref={resultsRef}>
+        {latest ? (
+          <div className="ft-card" style={{ background: "var(--bg)", padding: 10 }}>
+            <div className="ft-label" style={{ margin: 0 }}>Latest ({fmtShort(latest.date)})</div>
+            <div className="ft-mono" style={{ fontSize: 20, fontWeight: 600, marginTop: 2, color: "var(--work)" }}>{displayValue(latest.value)}</div>
+          </div>
+        ) : (
+          <p style={{ fontSize: 12, color: "var(--ink-soft)" }}>No results logged yet.</p>
+        )}
 
-      {chartData.length > 1 && (
-        <div style={{ height: 140, marginTop: 10 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <CartesianGrid stroke="var(--line)" vertical={false} />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--ink-soft)" }} />
-              <YAxis tick={{ fontSize: 10, fill: "var(--ink-soft)" }} tickFormatter={isTime ? formatTime : isDistance ? formatDistance : undefined} />
-              <Tooltip formatter={(v) => [displayValue(v), exercise.name]} />
-              <Line type="monotone" dataKey="value" stroke="var(--work)" strokeWidth={2} dot={{ r: 3 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+        {chartData.length > 1 && (
+          <div style={{ height: 140, marginTop: 10 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <CartesianGrid stroke="var(--line)" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--ink-soft)" }} />
+                <YAxis tick={{ fontSize: 10, fill: "var(--ink-soft)" }} tickFormatter={isTime ? formatTime : isDistance ? formatDistance : undefined} />
+                <Tooltip formatter={(v) => [displayValue(v), exercise.name]} />
+                <Line type="monotone" dataKey="value" stroke="var(--work)" strokeWidth={2} dot={{ r: 3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
 
-      {sorted.length > 0 && (
-        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
-          {sorted.slice().reverse().slice(0, 4).map((r, i) => (
-            <div key={i} style={{ borderBottom: "1px solid var(--line)", padding: "4px 0" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                <span style={{ color: "var(--ink-soft)" }}>{fmtShort(r.date)}</span>
-                <span className="ft-mono">{displayValue(r.value)}</span>
+        {sorted.length > 0 && (
+          <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+            {sorted.slice().reverse().slice(0, 4).map((r, i) => (
+              <div key={i} style={{ borderBottom: "1px solid var(--line)", padding: "4px 0" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                  <span style={{ color: "var(--ink-soft)" }}>{fmtShort(r.date)}</span>
+                  <span className="ft-mono">{displayValue(r.value)}</span>
+                </div>
+                {r.comment && (
+                  <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "2px 0 0", fontStyle: "italic" }}>{r.comment}</p>
+                )}
               </div>
-              {r.comment && (
-                <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "2px 0 0", fontStyle: "italic" }}>{r.comment}</p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -3384,7 +3391,7 @@ function DailyCheckInModal({ foodByDate, workoutByDate, stepsByDate, goals, onCl
   const workoutLogged = workouts.length > 0;
   const stepsLogged = stepsCount > 0;
   const calStatus = checkStatus(totals.cal, goals.calories, foodLogged);
-  const proteinStatus = checkStatus(totals.p, goals.protein, foodLogged);
+  const proteinStatus = checkStatus(totals.p, goals.protein, foodLogged, true);
   const carbStatus = checkStatus(totals.c, goals.carb, foodLogged);
   const fatStatus = checkStatus(totals.f, goals.fat, foodLogged);
   const stepsStatus = checkStatus(stepsCount, goals.steps, stepsLogged, true);
@@ -3535,7 +3542,7 @@ function computeDayReport(dateStr, foodByDate, workoutByDate, stepsByDate, goals
 
   const rows = [
     { key: "Calories", value: totals.cal, target: goals.calories, unit: " kcal", ...stat(totals.cal, goals.calories, foodLogged) },
-    { key: "Protein", value: Math.round(totals.p), target: goals.protein, unit: "g", ...stat(totals.p, goals.protein, foodLogged) },
+    { key: "Protein", value: Math.round(totals.p), target: goals.protein, unit: "g", ...stat(totals.p, goals.protein, foodLogged, true) },
     { key: "Carbs", value: Math.round(totals.c), target: goals.carb, unit: "g", ...stat(totals.c, goals.carb, foodLogged) },
     { key: "Fat", value: Math.round(totals.f), target: goals.fat, unit: "g", ...stat(totals.f, goals.fat, foodLogged) },
     { key: "Steps", value: steps, target: goals.steps, unit: "", ...stat(steps, goals.steps, steps > 0, true) },
@@ -3641,6 +3648,12 @@ function downloadCanvas(canvas, filename) {
 // captures an on-screen element (e.g. a block of charts) as an actual screenshot,
 // framed with a small FIT DATA header/footer, using the browser's own SVG
 // foreignObject rendering — no external screenshot library needed
+const FT_CSS_VAR_NAMES = [
+  "--bg", "--paper", "--ink", "--ink-soft", "--line", "--line-strong",
+  "--cal", "--cal-soft", "--protein", "--protein-soft", "--carb", "--carb-soft",
+  "--fat", "--fat-soft", "--work", "--work-soft", "--good", "--warn", "--radius",
+];
+
 function captureElementCanvas(el, { title } = {}) {
   return new Promise((resolve, reject) => {
     if (!el) { reject(new Error("no element")); return; }
@@ -3650,6 +3663,12 @@ function captureElementCanvas(el, { title } = {}) {
     const clone = el.cloneNode(true);
     clone.querySelectorAll(".no-print").forEach((n) => n.remove());
 
+    // the cloned markup renders in an isolated SVG/image context with no access to
+    // the page's stylesheet, so CSS custom properties (var(--good) etc.) need to be
+    // re-declared inline or every color collapses to black/invisible.
+    const rootStyle = getComputedStyle(document.documentElement);
+    const cssVars = FT_CSS_VAR_NAMES.map((n) => `${n}:${rootStyle.getPropertyValue(n).trim()}`).join(";");
+
     const headerH = 70, footerH = 36, pad = 20;
     const outW = w + pad * 2;
     const outH = h + headerH + footerH;
@@ -3657,7 +3676,7 @@ function captureElementCanvas(el, { title } = {}) {
     const html = new XMLSerializer().serializeToString(clone);
     const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
       <foreignObject width="100%" height="100%">
-        <div xmlns="http://www.w3.org/1999/xhtml" style="background:#FFFFFF;font-family:Inter,Arial,sans-serif;color:#141414;width:${w}px;">${html}</div>
+        <div xmlns="http://www.w3.org/1999/xhtml" style="background:#FFFFFF;font-family:Inter,Arial,sans-serif;color:#141414;width:${w}px;${cssVars}">${html}</div>
       </foreignObject>
     </svg>`;
     const svgUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgString);
@@ -3974,6 +3993,7 @@ function DailyReportScreen({ foodByDate, workoutByDate, stepsByDate, goals, mile
 }
 
 function DashboardScreen({ goals, profile, foodByDate, workoutByDate, stepsByDate, streakDays, milestones, onOpenFood, onOpenWorkout, onOpenSteps }) {
+  const breakdownRef = useRef(null);
   // fixed ~13-month lookback so the Report panel can serve daily through yearly views
   const LOOKBACK_DAYS = 400;
   const dateList = Array.from({ length: LOOKBACK_DAYS }, (_, i) => todayStr(-(LOOKBACK_DAYS - 1 - i)));
@@ -4021,10 +4041,25 @@ function DashboardScreen({ goals, profile, foodByDate, workoutByDate, stepsByDat
       <ReportPanel rawSeries={rawSeries} goals={goals} />
 
       <div className="ft-card" style={{ marginTop: 20 }}>
-        <h3 className="ft-display" style={{ marginTop: 0, fontSize: 16 }}>Daily breakdown</h3>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h3 className="ft-display" style={{ marginTop: 0, fontSize: 16 }}>Daily breakdown</h3>
+          <ShareDownloadButtons
+            onGetCanvas={() =>
+              captureElementCanvas(breakdownRef.current, { title: "Daily Breakdown — Last 14 Days" })
+                .catch(() => {
+                  alert("Couldn't capture this screen as an image in this browser. Try again, or use Download / Print instead.");
+                  return null;
+                })
+            }
+            filename={`daily-breakdown-${todayStr()}.png`}
+            shareTitle="My daily breakdown"
+            shareText="Last 14 days, colored against my daily targets."
+          />
+        </div>
         <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 0, marginBottom: 14 }}>
           Last 14 days, colored against your daily targets.
         </p>
+        <div ref={breakdownRef}>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 640 }}>
             <thead>
@@ -4042,7 +4077,7 @@ function DashboardScreen({ goals, profile, foodByDate, workoutByDate, stepsByDat
               {rawSeries.slice(-14).slice().reverse().map((r) => {
                 const foodLoggedThatDay = (foodByDate[r.date] || []).length > 0;
                 const cs = macroStatus(r.cal, goals.calories, foodLoggedThatDay);
-                const ps = macroStatus(r.p, goals.protein, foodLoggedThatDay);
+                const ps = macroStatus(r.p, goals.protein, foodLoggedThatDay, true);
                 const ccs = macroStatus(r.c, goals.carb, foodLoggedThatDay);
                 const fs = macroStatus(r.f, goals.fat, foodLoggedThatDay);
                 const ss = macroStatus(r.steps, goals.steps, r.steps > 0, true);
@@ -4080,6 +4115,7 @@ function DashboardScreen({ goals, profile, foodByDate, workoutByDate, stepsByDat
           <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--carb)" }} /> 5–10% over/under</span>
           <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--warn)" }} /> 10%+ over/under</span>
           <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--work)" }} /> Workout logged</span>
+        </div>
         </div>
       </div>
     </div>
@@ -4249,6 +4285,19 @@ function AppInner() {
     const id = setInterval(check, 60000);
     return () => clearInterval(id);
   }, [checkInShownDate, loading, profile, subscribed]);
+
+  // ask for push notification permission once per account, so the evening check-in
+  // reminder can reach the user even when the app is closed or they're offline
+  useEffect(() => {
+    if (loading || !session || !profile || !subscribed) return;
+    (async () => {
+      const asked = await storeGet("push-permission-asked", false);
+      if (asked) return;
+      await storeSet("push-permission-asked", true);
+      if (typeof Notification === "undefined" || Notification.permission !== "default") return;
+      await subscribeToPush(session.user.id);
+    })();
+  }, [loading, session, profile, subscribed]);
 
   const setProfile = useCallback((p) => {
     const next = { ...p, startWeightKg: profile?.startWeightKg || p.weightKg };
