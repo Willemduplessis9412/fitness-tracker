@@ -4399,7 +4399,14 @@ function AppInner() {
     if (!window.confirm("Cancel your subscription? You'll lose access to logging and tracking immediately.")) return;
     const { data, error } = await supabase.functions.invoke("cancel-paystack-subscription");
     if (error || !data?.ok) {
-      window.alert(data?.error || error?.message || "Couldn't cancel right now. Please try again.");
+      let message = data?.error || error?.message || "Couldn't cancel right now. Please try again.";
+      if (error?.context?.json) {
+        try {
+          const body = await error.context.json();
+          if (body?.error) message = body.error;
+        } catch (e) { /* body wasn't JSON — fall back to the generic message */ }
+      }
+      window.alert(message);
       return;
     }
     setSubscribed(false);
