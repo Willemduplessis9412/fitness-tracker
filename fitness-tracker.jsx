@@ -752,7 +752,16 @@ function InstallShortcutButton() {
   );
 }
 
+const DEMO_VIDEO_URL = "https://youtu.be/gygY2LYwDqQ";
+
+function getYouTubeId(url) {
+  if (!url) return null;
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
 function AppShowcase() {
+  const videoId = getYouTubeId(DEMO_VIDEO_URL);
   const features = [
     { icon: Flame, shot: "/screenshots/food-log.png", title: "Log Your Food", desc: "Track calories, protein, carbs and fat for every meal in seconds." },
     { icon: Dumbbell, shot: "/screenshots/workout-log.png", title: "Log Your Workouts", desc: "Record exercises, sets, reps, and effort — or just the essentials." },
@@ -783,6 +792,48 @@ function AppShowcase() {
             <InstallShortcutButton />
           </div>
         </div>
+      </div>
+
+      <div style={{ width: "100%", padding: "72px 24px 0", display: "flex", justifyContent: "center" }}>
+        <a
+          href={videoId ? `https://www.youtube.com/watch?v=${videoId}` : undefined}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "block", position: "relative", width: "100%", maxWidth: 820, aspectRatio: "16 / 9",
+            borderRadius: 16, overflow: "hidden", background: "#111",
+            border: "1px solid rgba(255,255,255,.15)",
+            cursor: videoId ? "pointer" : "default",
+          }}
+        >
+          {videoId && (
+            <img
+              src="/video-thumbnail.png"
+              alt="Watch the FIT DATA demo on YouTube"
+              style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+            />
+          )}
+          <div
+            style={{
+              position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <div
+              style={{
+                width: 72, height: 72, borderRadius: "50%", background: "#FF0000",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: "0 8px 24px rgba(0,0,0,.4)",
+              }}
+            >
+              <div style={{ width: 0, height: 0, marginLeft: 4, borderTop: "14px solid transparent", borderBottom: "14px solid transparent", borderLeft: "22px solid #fff" }} />
+            </div>
+          </div>
+          {!videoId && (
+            <p style={{ position: "absolute", bottom: 16, left: 0, right: 0, textAlign: "center", color: "rgba(255,255,255,.4)", fontSize: 13, margin: 0 }}>
+              Demo video coming soon
+            </p>
+          )}
+        </a>
       </div>
 
       <div
