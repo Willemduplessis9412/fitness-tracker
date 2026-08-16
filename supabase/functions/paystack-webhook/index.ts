@@ -60,15 +60,25 @@ Deno.serve(async (req) => {
     if (event.event === "subscription.create") {
       const customerCode = data.customer?.customer_code ?? null;
       if (customerCode) {
-        await admin
-          .from("subscriptions")
-          .update({
-            paystack_subscription_code: data.subscription_code ?? null,
-            paystack_email_token: data.email_token ?? null,
-            current_period_end: data.next_payment_date ?? null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("paystack_customer_code", customerCode);
+        // charge.success is what first writes paystack_customer_code onto the row,
+        // and Paystack can fire this event at nearly the same instant — if we run
+        // before that write lands, there's no row to match yet. Retry briefly
+        // rather than silently dropping the update (which used to just no-op).
+        for (let attempt = 0; attempt < 5; attempt++) {
+          if (attempt > 0) await new Promise((r) => setTimeout(r, 1000));
+          const { data: rows, error: updErr } = await admin
+            .from("subscriptions")
+            .update({
+              paystack_subscription_code: data.subscription_code ?? null,
+              paystack_email_token: data.email_token ?? null,
+              current_period_end: data.next_payment_date ?? null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("paystack_customer_code", customerCode)
+            .select("user_id");
+          if (updErr) throw updErr;
+          if ((rows?.length ?? 0) > 0) break;
+        }
       }
     }
 
