@@ -4380,7 +4380,17 @@ function AppInner() {
   const handleSubscribe = async (plan) => {
     const { data, error } = await supabase.functions.invoke("create-paystack-payment", { body: { plan } });
     if (error || !data?.authorization_url) {
-      throw new Error(data?.error || error?.message || "Couldn't start checkout. Please try again.");
+      // supabase-js only parses the response body into `data` on success — on a
+      // non-2xx response it just gives a generic error and stashes the real body
+      // on error.context, which we have to read and parse ourselves
+      let message = data?.error || error?.message || "Couldn't start checkout. Please try again.";
+      if (error?.context?.json) {
+        try {
+          const body = await error.context.json();
+          if (body?.error) message = body.error;
+        } catch (e) { /* body wasn't JSON — fall back to the generic message */ }
+      }
+      throw new Error(message);
     }
     window.location.href = data.authorization_url;
   };
