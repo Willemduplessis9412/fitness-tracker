@@ -9,6 +9,14 @@ import {
 } from "lucide-react";
 import { supabase } from "./src/supabaseClient.js";
 
+// capture ?ref=<code> the moment the app loads, and hold onto it until the
+// visitor actually creates an account (see the referrals table + AppInner's
+// first-login effect, which is what actually records the attribution)
+if (typeof window !== "undefined") {
+  const refCode = new URLSearchParams(window.location.search).get("ref");
+  if (refCode) localStorage.setItem("ft-ref-code", refCode.trim().toLowerCase());
+}
+
 /* ---------------------------------------------------------------------- */
 /* Design tokens                                                          */
 /* ---------------------------------------------------------------------- */
@@ -4282,6 +4290,14 @@ function AppInner() {
         const meta = session.user.user_metadata || {};
         p = { name: meta.name || session.user.email.split("@")[0], email: session.user.email, startWeightKg: undefined };
         await storeSet("profile", p);
+
+        // this is a brand-new account's first authenticated load — if they arrived
+        // via someone's referral link, this is the moment we can safely record it
+        const refCode = localStorage.getItem("ft-ref-code");
+        if (refCode) {
+          await supabase.from("referrals").insert({ user_id: session.user.id, ref_code: refCode }).then(() => {}, () => {});
+          localStorage.removeItem("ft-ref-code");
+        }
       }
       const { data: subRow } = await supabase
         .from("subscriptions")
