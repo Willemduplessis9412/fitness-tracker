@@ -5,8 +5,8 @@ import {
 } from "recharts";
 import {
   Flame, Dumbbell, Target, TrendingUp, Plus, Trash2, LogOut, Lock,
-  CheckCircle2, User, Calendar, Activity, Trophy, ChevronRight, X, AlertTriangle, XCircle, Share2, Download, Repeat, Menu,
-  Eye, EyeOff,
+  CheckCircle2, User, Calendar, Activity, Trophy, ChevronRight, ChevronLeft, X, AlertTriangle, XCircle, Share2, Download, Repeat, Menu,
+  Eye, EyeOff, Sparkles,
 } from "lucide-react";
 import { supabase } from "./src/supabaseClient.js";
 
@@ -4224,6 +4224,58 @@ function DashboardScreen({ goals, profile, foodByDate, workoutByDate, stepsByDat
 }
 
 /* ---------------------------------------------------------------------- */
+/* Onboarding tour                                                       */
+/* ---------------------------------------------------------------------- */
+
+const ONBOARDING_STEPS = [
+  { icon: Sparkles, title: "Welcome to Fit Data", body: "A quick look at what you can do here — takes about 20 seconds." },
+  { icon: TrendingUp, title: "Dashboard", body: "Your whole day at a glance — calories, macros, workouts and steps, all in one place." },
+  { icon: Flame, title: "Log food", body: "Search or add a meal in seconds. Totals update against your goals automatically." },
+  { icon: Dumbbell, title: "Log workout", body: "Track sets, duration, distance and effort for every session." },
+  { icon: Activity, title: "Log steps", body: "Log your daily steps and watch your streak build." },
+  { icon: Target, title: "Set your goals", body: "Calories, macros, weight target and workout frequency — all adjustable any time." },
+  { icon: Trophy, title: "Fitness test", body: "Track strength and performance milestones over time." },
+];
+
+function OnboardingTourModal({ onClose }) {
+  const [step, setStep] = useState(0);
+  const last = step === ONBOARDING_STEPS.length - 1;
+  const s = ONBOARDING_STEPS[step];
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(27,36,32,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div className="ft-card" style={{ maxWidth: 380, width: "100%" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button className="ft-btn-outline ft-btn" style={{ padding: "4px 10px", fontSize: 12 }} onClick={onClose}>Skip</button>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "4px 8px 8px" }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+            <s.icon size={26} color="var(--ink)" />
+          </div>
+          <h3 className="ft-display" style={{ margin: "0 0 8px", fontSize: 18 }}>{s.title}</h3>
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.5, margin: 0 }}>{s.body}</p>
+        </div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 6, margin: "18px 0" }}>
+          {ONBOARDING_STEPS.map((_, i) => (
+            <div key={i} style={{ width: i === step ? 16 : 6, height: 6, borderRadius: 3, background: i === step ? "var(--ink)" : "var(--line)", transition: "width .15s" }} />
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {step > 0 && (
+            <button className="ft-btn-outline ft-btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => setStep((v) => v - 1)}>
+              <ChevronLeft size={15} /> Back
+            </button>
+          )}
+          <button className="ft-btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => (last ? onClose() : setStep((v) => v + 1))}>
+            {last ? "Let's go" : "Next"} {!last && <ChevronRight size={15} />}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
 /* Main App                                                               */
 /* ---------------------------------------------------------------------- */
 
@@ -4270,6 +4322,7 @@ function AppInner() {
   const [stepsByDate, setStepsByDate] = useState({});
   const [testExercises, setTestExercises] = useState([]);
   const [showCheckIn, setShowCheckIn] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [checkInShownDate, setCheckInShownDate] = useState(null);
   const [testResults, setTestResults] = useState({});
   const [inbodyScans, setInbodyScans] = useState([]);
@@ -4340,6 +4393,11 @@ function AppInner() {
           await supabase.from("referrals").insert({ user_id: session.user.id, ref_code: refCode }).then(() => {}, () => {});
           localStorage.removeItem("ft-ref-code");
         }
+      } else {
+        // pre-existing account from before the onboarding tour shipped -- don't show it
+        // retroactively, only to accounts created from here on (the `!p` branch above)
+        const seen = await storeGet("onboarding-tour-seen", null);
+        if (seen === null) await storeSet("onboarding-tour-seen", true);
       }
       const { data: subRow } = await supabase
         .from("subscriptions")
@@ -4394,6 +4452,21 @@ function AppInner() {
     const id = setInterval(check, 60000);
     return () => clearInterval(id);
   }, [checkInShownDate, loading, profile, subscribed]);
+
+  // show the first-login walkthrough once per account (skipped for accounts that
+  // already existed before this feature shipped -- see the profile-load effect above)
+  useEffect(() => {
+    if (loading || !session || !profile || !subscribed) return;
+    (async () => {
+      const seen = await storeGet("onboarding-tour-seen", false);
+      if (!seen) setShowOnboarding(true);
+    })();
+  }, [loading, session, profile, subscribed]);
+
+  const handleFinishOnboarding = useCallback(() => {
+    setShowOnboarding(false);
+    storeSet("onboarding-tour-seen", true);
+  }, []);
 
   // ask for push notification permission once per account, so the evening check-in
   // reminder can reach the user even when the app is closed or they're offline
@@ -4774,7 +4847,7 @@ function AppInner() {
         </div>
       </div>
 
-      {showCheckIn && (
+      {showCheckIn && !showOnboarding && (
         <DailyCheckInModal
           foodByDate={foodByDate}
           workoutByDate={workoutByDate}
@@ -4783,6 +4856,8 @@ function AppInner() {
           onClose={() => setShowCheckIn(false)}
         />
       )}
+
+      {showOnboarding && <OnboardingTourModal onClose={handleFinishOnboarding} />}
     </div>
   );
 }
