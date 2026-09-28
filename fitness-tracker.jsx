@@ -6,6 +6,7 @@ import {
 import {
   Flame, Dumbbell, Target, TrendingUp, Plus, Trash2, LogOut, Lock,
   CheckCircle2, User, Calendar, Activity, Trophy, ChevronRight, X, AlertTriangle, XCircle, Share2, Download, Repeat, Menu,
+  Eye, EyeOff,
 } from "lucide-react";
 import { supabase } from "./src/supabaseClient.js";
 
@@ -16,6 +17,11 @@ if (typeof window !== "undefined") {
   const refCode = new URLSearchParams(window.location.search).get("ref");
   if (refCode) localStorage.setItem("ft-ref-code", refCode.trim().toLowerCase());
 }
+
+// Rounds to 1 decimal place for display -- summing per-entry decimal grams drifts into binary
+// floating-point noise (e.g. 112.39999999999999), which this cleans up without touching the
+// underlying totals used for goal-percentage math.
+const round1 = (n) => Math.round(n * 10) / 10;
 
 /* ---------------------------------------------------------------------- */
 /* Design tokens                                                          */
@@ -526,6 +532,39 @@ function StreakStrip({ days }) {
 /* Login / Paywall                                                        */
 /* ---------------------------------------------------------------------- */
 
+// A password <input> with a tap-to-reveal eye icon, so users can check what they typed
+// instead of guessing blind. `style` sizes the wrapper (matching how callers previously sized
+// the bare input directly, e.g. style={{ width: 160 }}); the input itself just fills it.
+function PasswordInput({ value, onChange, placeholder, style, onKeyDown }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div style={{ position: "relative", ...style }}>
+      <input
+        className="ft-input"
+        type={visible ? "text" : "password"}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        onKeyDown={onKeyDown}
+        style={{ width: "100%", paddingRight: 34 }}
+      />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? "Hide password" : "Show password"}
+        tabIndex={-1}
+        style={{
+          position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)",
+          background: "none", border: "none", padding: 2, cursor: "pointer",
+          display: "flex", alignItems: "center", color: "var(--ink-soft)",
+        }}
+      >
+        {visible ? <EyeOff size={15} /> : <Eye size={15} />}
+      </button>
+    </div>
+  );
+}
+
 function AuthScreen() {
   const [mode, setMode] = useState("signin"); // "signin" | "signup" | "reset"
   const [name, setName] = useState("");
@@ -631,7 +670,7 @@ function AuthScreen() {
             <input className="ft-input" type="email" placeholder="jordan@example.com" style={{ width: 200 }} value={email} onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && mode === "reset") handleSubmit(); }} />
             {mode !== "reset" && (
-              <input className="ft-input" type="password" placeholder="••••••••" style={{ width: 160 }} value={password} onChange={(e) => setPassword(e.target.value)}
+              <PasswordInput placeholder="••••••••" style={{ width: 160 }} value={password} onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }} />
             )}
             {mode === "signin" && (
@@ -932,11 +971,11 @@ function ResetPasswordScreen({ onDone }) {
         <h3 className="ft-display" style={{ marginTop: 0 }}>Set a new password</h3>
         <div style={{ marginBottom: 14 }}>
           <label className="ft-label">New password</label>
-          <input className="ft-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
         <div style={{ marginBottom: 20 }}>
           <label className="ft-label">Confirm password</label>
-          <input className="ft-input" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
+          <PasswordInput value={confirm} onChange={(e) => setConfirm(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }} />
         </div>
         {error && <p style={{ fontSize: 12, color: "var(--warn)", marginTop: -10, marginBottom: 16 }}>{error}</p>}
@@ -1795,10 +1834,13 @@ function FoodLogScreen({ date, setDate, entries, addEntry, removeEntry, goals, c
 
           <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
             <div className="ft-label" style={{ marginBottom: 10 }}>Today's totals vs goal</div>
+            {/* Summing per-entry decimal grams (e.g. 13.5 + 62 + 4.1 ...) drifts into binary
+                floating-point noise like 112.39999999999999 -- round to 1dp for display only,
+                the raw totals.* values (used for the pct bars above) are untouched. */}
             <ProgressBar pct={(totals.cal / goals.calories) * 100} color="var(--cal)" label="Calories" sub={`${totals.cal} / ${goals.calories} kcal`} />
-            <ProgressBar pct={(totals.p / goals.protein) * 100} color="var(--protein)" label="Protein" sub={`${totals.p}g / ${goals.protein}g`} />
-            <ProgressBar pct={(totals.c / goals.carb) * 100} color="var(--carb)" label="Carbs" sub={`${totals.c}g / ${goals.carb}g`} />
-            <ProgressBar pct={(totals.f / goals.fat) * 100} color="var(--fat)" label="Fat" sub={`${totals.f}g / ${goals.fat}g`} />
+            <ProgressBar pct={(totals.p / goals.protein) * 100} color="var(--protein)" label="Protein" sub={`${round1(totals.p)}g / ${goals.protein}g`} />
+            <ProgressBar pct={(totals.c / goals.carb) * 100} color="var(--carb)" label="Carbs" sub={`${round1(totals.c)}g / ${goals.carb}g`} />
+            <ProgressBar pct={(totals.f / goals.fat) * 100} color="var(--fat)" label="Fat" sub={`${round1(totals.f)}g / ${goals.fat}g`} />
           </div>
         </div>
 

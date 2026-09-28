@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FitData</string>
+    <string name="title_activity_main">FitData</string>
+    <string name="package_name">fitdata.fit</string>
+    <string name="custom_url_scheme">fitdata.fit</string>
+</resources>
