@@ -9,6 +9,8 @@ import {
   Eye, EyeOff, Sparkles,
 } from "lucide-react";
 import { supabase } from "./src/supabaseClient.js";
+import { Capacitor } from "@capacitor/core";
+import { initAdMob, showFooterBanner, hideFooterBanner, showSessionInterstitial } from "./src/admob.js";
 
 // capture ?ref=<code> the moment the app loads, and hold onto it until the
 // visitor actually creates an account (see the referrals table + AppInner's
@@ -4304,6 +4306,11 @@ export default function App() {
 function AppInner() {
   useGoogleFonts();
 
+  // Play Store distribution is free/ad-supported (Google Play requires Play Billing for
+  // in-app purchases, so the Paystack checkout below can't run there); the web build stays
+  // subscription-only. See the paywall gate and the ad-lifecycle effect further down.
+  const isNative = Capacitor.isNativePlatform();
+
   const [session, setSession] = useState(undefined); // undefined = checking, null = signed out
   const [passwordRecovery, setPasswordRecovery] = useState(false);
   const [saveError, setSaveError] = useState(null);
@@ -4442,7 +4449,7 @@ function AppInner() {
     const check = () => {
       const now = new Date();
       const today = todayStr();
-      if (now.getHours() >= 20 && checkInShownDate !== today && !loading && profile && subscribed) {
+      if (now.getHours() >= 20 && checkInShownDate !== today && !loading && profile && (subscribed || isNative)) {
         setShowCheckIn(true);
         setCheckInShownDate(today);
         storeSet("checkin-shown-date", today);
@@ -4456,7 +4463,7 @@ function AppInner() {
   // show the first-login walkthrough once per account (skipped for accounts that
   // already existed before this feature shipped -- see the profile-load effect above)
   useEffect(() => {
-    if (loading || !session || !profile || !subscribed) return;
+    if (loading || !session || !profile || !(subscribed || isNative)) return;
     (async () => {
       const seen = await storeGet("onboarding-tour-seen", false);
       if (!seen) setShowOnboarding(true);
@@ -4468,10 +4475,25 @@ function AppInner() {
     storeSet("onboarding-tour-seen", true);
   }, []);
 
+  // show a persistent footer banner + at most one interstitial per session on the free,
+  // ad-supported Play Store build; no-ops entirely on web and for subscribed native accounts
+  useEffect(() => {
+    if (loading || !session || !profile || !isNative) return;
+    (async () => {
+      await initAdMob();
+      if (subscribed) {
+        await hideFooterBanner();
+      } else {
+        await showFooterBanner();
+        await showSessionInterstitial();
+      }
+    })();
+  }, [loading, session, profile, subscribed]);
+
   // ask for push notification permission once per account, so the evening check-in
   // reminder can reach the user even when the app is closed or they're offline
   useEffect(() => {
-    if (loading || !session || !profile || !subscribed) return;
+    if (loading || !session || !profile || !(subscribed || isNative)) return;
     (async () => {
       const asked = await storeGet("push-permission-asked", false);
       if (asked) return;
@@ -4660,6 +4682,7 @@ function AppInner() {
   const logout = () => {
     supabase.auth.signOut();
     resetLocalState();
+    if (isNative) hideFooterBanner();
   };
 
   const streakDays = Array.from({ length: 14 }, (_, i) => {
@@ -4703,7 +4726,7 @@ function AppInner() {
     );
   }
 
-  if (!subscribed) {
+  if (!subscribed && !isNative) {
     return (
       <div className="ft-root">
         <style>{TOKENS}</style>
@@ -4844,6 +4867,9 @@ function AppInner() {
               addResult={addTestResult}
             />
           )}
+          {/* reserves scroll space above the native footer banner -- a plain height (not
+              padding) survives the mobile media query's `padding:16px !important` override */}
+          {isNative && !subscribed && <div style={{ height: 64 }} />}
         </div>
       </div>
 
