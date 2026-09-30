@@ -6,11 +6,12 @@ import {
 import {
   Flame, Dumbbell, Target, TrendingUp, Plus, Trash2, LogOut, Lock,
   CheckCircle2, User, Calendar, Activity, Trophy, ChevronRight, ChevronLeft, X, AlertTriangle, XCircle, Share2, Download, Repeat, Menu,
-  Eye, EyeOff, Sparkles,
+  Eye, EyeOff, Sparkles, ScanBarcode,
 } from "lucide-react";
 import { supabase } from "./src/supabaseClient.js";
 import { Capacitor } from "@capacitor/core";
 import { initAdMob, showFooterBanner, hideFooterBanner, showSessionInterstitial } from "./src/admob.js";
+import { scanProductBarcode, lookupProductByBarcode } from "./src/foodScanner.js";
 
 // capture ?ref=<code> the moment the app loads, and hold onto it until the
 // visitor actually creates an account (see the referrals table + AppInner's
@@ -1663,6 +1664,147 @@ function GoalsScreen({ goals, setGoals, profile, milestones, addMilestone, toggl
 }
 
 /* ---------------------------------------------------------------------- */
+/* Scan product modal                                                     */
+/* ---------------------------------------------------------------------- */
+
+function ScanProductModal({ onClose, onAdd }) {
+  const isNative = Capacitor.isNativePlatform();
+  // scanning | manual | looking-up | result | not-found | error
+  const [step, setStep] = useState(isNative ? "scanning" : "manual");
+  const [manualCode, setManualCode] = useState("");
+  const [product, setProduct] = useState(null);
+  const [grams, setGrams] = useState(100);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const runLookup = async (barcode) => {
+    setStep("looking-up");
+    try {
+      const result = await lookupProductByBarcode(barcode);
+      if (!result) {
+        setStep("not-found");
+        return;
+      }
+      setProduct(result);
+      setStep("result");
+    } catch {
+      setErrorMsg("Couldn't reach the food database. Check your connection and try again.");
+      setStep("error");
+    }
+  };
+
+  useEffect(() => {
+    if (!isNative) return;
+    (async () => {
+      try {
+        const barcode = await scanProductBarcode();
+        if (!barcode) {
+          onClose();
+          return;
+        }
+        await runLookup(barcode);
+      } catch (e) {
+        setErrorMsg(
+          e?.message === "SCANNER_MODULE_INSTALLING"
+            ? "Setting up the scanner for the first time -- this can take a moment. Try again shortly."
+            : "Couldn't open the camera scanner."
+        );
+        setStep("error");
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleAdd = () => {
+    if (!product || !grams) return;
+    const ratio = Number(grams) / 100;
+    onAdd(
+      {
+        id: `${Date.now()}`,
+        food: product.name,
+        grams: Number(grams),
+        cal: Math.round(product.cal * ratio),
+        p: Math.round(product.p * ratio * 10) / 10,
+        c: Math.round(product.c * ratio * 10) / 10,
+        f: Math.round(product.f * ratio * 10) / 10,
+      },
+      product
+    );
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(27,36,32,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div className="ft-card" style={{ maxWidth: 380, width: "100%" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <h3 className="ft-display" style={{ margin: 0, fontSize: 17 }}>Scan product</h3>
+          <button className="ft-btn-outline ft-btn" style={{ padding: 6 }} onClick={onClose} aria-label="Close"><X size={14} /></button>
+        </div>
+
+        {step === "scanning" && <p style={{ fontSize: 13, color: "var(--ink-soft)" }}>Opening camera…</p>}
+
+        {step === "manual" && (
+          <div>
+            <p style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 10 }}>
+              Camera scanning is only available in the app. Type the barcode number instead:
+            </p>
+            <input
+              className="ft-input"
+              placeholder="e.g. 6009880615091"
+              value={manualCode}
+              onChange={(e) => setManualCode(e.target.value)}
+              style={{ marginBottom: 10 }}
+            />
+            <button
+              className="ft-btn"
+              style={{ width: "100%", justifyContent: "center" }}
+              disabled={!manualCode.trim()}
+              onClick={() => runLookup(manualCode.trim())}
+            >
+              Look up
+            </button>
+          </div>
+        )}
+
+        {step === "looking-up" && <p style={{ fontSize: 13, color: "var(--ink-soft)" }}>Looking up product…</p>}
+
+        {step === "not-found" && (
+          <div>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 12 }}>
+              Couldn't find that product in the database. You can add it by hand instead using "New item".
+            </p>
+            <button className="ft-btn-outline ft-btn" style={{ width: "100%", justifyContent: "center" }} onClick={onClose}>Close</button>
+          </div>
+        )}
+
+        {step === "error" && (
+          <div>
+            <p style={{ fontSize: 13, color: "var(--warn)", marginBottom: 12 }}>{errorMsg}</p>
+            <button className="ft-btn-outline ft-btn" style={{ width: "100%", justifyContent: "center" }} onClick={onClose}>Close</button>
+          </div>
+        )}
+
+        {step === "result" && product && (
+          <div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>{product.name}</div>
+              <div className="ft-mono" style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+                per 100g: {product.cal} kcal · P{product.p} C{product.c} F{product.f}
+              </div>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label className="ft-label">Amount (grams)</label>
+              <input className="ft-input" type="number" value={grams} onChange={(e) => setGrams(e.target.value)} />
+            </div>
+            <button className="ft-btn" style={{ width: "100%", justifyContent: "center" }} onClick={handleAdd}>
+              <Plus size={15} /> Add to log
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
 /* Food log screen                                                        */
 /* ---------------------------------------------------------------------- */
 
@@ -1673,6 +1815,7 @@ function FoodLogScreen({ date, setDate, entries, addEntry, removeEntry, goals, c
   const [grams, setGrams] = useState(100);
   const [showNewItem, setShowNewItem] = useState(false);
   const [newItem, setNewItem] = useState({ name: "", kj: "", protein: "", carbs: "", fat: "", grams: 100 });
+  const [showScan, setShowScan] = useState(false);
 
   const fullDB = useMemo(() => {
     const custom = (customFoods || []).map((f) => ({ ...f, cat: "My Foods" }));
@@ -1738,6 +1881,12 @@ function FoodLogScreen({ date, setDate, entries, addEntry, removeEntry, goals, c
     setShowNewItem(false);
   };
 
+  const handleScanAdd = (entry, product) => {
+    addEntry(entry);
+    addCustomFood(product);
+    setShowScan(false);
+  };
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
@@ -1753,6 +1902,12 @@ function FoodLogScreen({ date, setDate, entries, addEntry, removeEntry, goals, c
               <Plus size={13} /> New item
             </button>
           </div>
+
+          <button className="ft-btn" style={{ width: "100%", justifyContent: "center", marginTop: 12 }} onClick={() => setShowScan(true)}>
+            <ScanBarcode size={15} /> Scan product
+          </button>
+
+          {showScan && <ScanProductModal onClose={() => setShowScan(false)} onAdd={handleScanAdd} />}
 
           {showNewItem && (
             <div className="ft-card" style={{ background: "var(--bg)", padding: 12, marginTop: 10, marginBottom: 14 }}>
