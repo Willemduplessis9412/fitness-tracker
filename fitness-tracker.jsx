@@ -839,7 +839,7 @@ function AppShowcase() {
                 Everything you need to track your training
               </p>
             </div>
-            <InstallShortcutButton />
+            {!Capacitor.isNativePlatform() && <InstallShortcutButton />}
           </div>
         </div>
       </div>
