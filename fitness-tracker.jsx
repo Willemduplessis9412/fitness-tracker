@@ -6,7 +6,7 @@ import {
 import {
   Flame, Dumbbell, Target, TrendingUp, Plus, Trash2, LogOut, Lock,
   CheckCircle2, User, Calendar, Activity, Trophy, ChevronRight, ChevronLeft, X, AlertTriangle, XCircle, Share2, Download, Repeat, Menu,
-  Eye, EyeOff, Sparkles, ScanBarcode, Play,
+  Eye, EyeOff, Sparkles, ScanBarcode,
 } from "lucide-react";
 import { supabase } from "./src/supabaseClient.js";
 import { Capacitor } from "@capacitor/core";
@@ -756,6 +756,17 @@ function PhoneMockup({ src, rotate, x, y, z, size }) {
 
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=fitdata.fit";
 
+function GooglePlayLogo({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#4285F4" d="M3 2 L13 12 L3 22 Z" />
+      <path fill="#34A853" d="M3 2 L16.5 9.5 L13 12 Z" />
+      <path fill="#FBBC04" d="M16.5 9.5 L21 12 L16.5 14.5 L13 12 Z" />
+      <path fill="#EA4335" d="M13 12 L16.5 14.5 L3 22 Z" />
+    </svg>
+  );
+}
+
 function InstallShortcutButton() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isIOS, setIsIOS] = useState(false);
@@ -790,7 +801,7 @@ function InstallShortcutButton() {
         rel="noopener noreferrer"
         style={{ justifyContent: "center", width: "100%", background: "transparent", color: "#fff", border: "1px solid rgba(255,255,255,.6)", fontSize: 21, padding: "15px 27px", marginBottom: 15, textDecoration: "none", boxSizing: "border-box" }}
       >
-        <Play size={22} /> Free on Play Store
+        <GooglePlayLogo size={22} /> Free on Play Store
       </a>
       <button
         className="ft-btn"
