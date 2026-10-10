@@ -4532,10 +4532,14 @@ function AppInner() {
     setCheckInShownDate(null);
   };
 
-  // load this user's data once we know who's signed in
+  // load this user's data once we know who's signed in. Keyed on the user id, not the session
+  // object: Supabase hands out a fresh session object on every token refresh (e.g. when the app
+  // resumes after the camera scanner closes), and reloading then would flash the loading screen
+  // and unmount whatever the user had open.
+  const sessionUserId = session === undefined ? undefined : (session?.user?.id ?? null);
   useEffect(() => {
-    if (session === undefined) return; // still checking for an existing session
-    if (!session) {
+    if (sessionUserId === undefined) return; // still checking for an existing session
+    if (!sessionUserId) {
       resetLocalState();
       setLoading(false);
       return;
@@ -4596,7 +4600,8 @@ function AppInner() {
       setStepsByDate(sMap || {});
       setLoading(false);
     })();
-  }, [session]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionUserId]);
 
   // check every minute — if it's 8pm or later local time and today's check-in hasn't shown yet, pop it up.
   // (only fires while the app is open; a browser tab can't wake itself up at an exact time when closed)
