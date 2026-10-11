@@ -4480,13 +4480,16 @@ export default function App() {
   return <AppInner />;
 }
 
+// Local dev only: http://localhost:5173/?app previews the native app's layout in the browser.
+const PREVIEW_AS_APP = import.meta.env.DEV && new URLSearchParams(window.location.search).has("app");
+
 function AppInner() {
   useGoogleFonts();
 
   // Play Store distribution is free/ad-supported (Google Play requires Play Billing for
   // in-app purchases, so the Paystack checkout below can't run there); the web build stays
   // subscription-only. See the paywall gate and the ad-lifecycle effect further down.
-  const isNative = Capacitor.isNativePlatform();
+  const isNative = Capacitor.isNativePlatform() || PREVIEW_AS_APP;
 
   const [session, setSession] = useState(undefined); // undefined = checking, null = signed out
   const [passwordRecovery, setPasswordRecovery] = useState(false);
