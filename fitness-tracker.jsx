@@ -4961,7 +4961,9 @@ function AppInner() {
             <span style={{ fontSize: 17, fontWeight: 700, fontFamily: "Georgia, serif", letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--bg)" }}>FIT DATA</span>
             <div style={{ width: 32, height: 2, background: "var(--bg)", opacity: 0.5, marginTop: 6 }} />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
+          {/* in the app the AdMob footer banner covers the bottom of the screen, so the actions
+              below sit right under the tabs instead of being pushed to the bottom */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: isNative ? undefined : 1 }}>
             {TABS.map((t) => (
               <button key={t.id} className={`ft-tab ${tab === t.id ? "active" : ""}`} onClick={() => { setTab(t.id); setMobileNavOpen(false); }}>
                 <t.icon size={16} /> {t.label}
