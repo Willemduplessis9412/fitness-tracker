@@ -11,6 +11,7 @@ import {
 import { supabase } from "./src/supabaseClient.js";
 import { Capacitor } from "@capacitor/core";
 import { initAdMob, showFooterBanner, hideFooterBanner, showSessionInterstitial } from "./src/admob.js";
+import { hasAdFreeSubscription, getAdFreePrice, buyAdFreeSubscription, manageAdFreeSubscription } from "./src/playBilling.js";
 
 // capture ?ref=<code> the moment the app loads, and hold onto it until the
 // visitor actually creates an account (see the referrals table + AppInner's
@@ -4344,6 +4345,10 @@ function AppInner() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [profile, setProfileState] = useState(null);
   const [subscribed, setSubscribed] = useState(false);
+  // Google Play "Remove ads" subscription (app only). null = not checked yet, so ads wait for the
+  // check instead of flashing an interstitial at someone who already paid to remove them.
+  const [adFree, setAdFree] = useState(null);
+  const [adFreePrice, setAdFreePrice] = useState(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [goals, setGoalsState] = useState({ calories: 2200, protein: 150, carb: 220, fat: 70, targetWeightKg: 75, workoutsPerWeek: 4, workoutsPerMonth: 0, steps: 8000, trainingDates: [] });
   const [tab, setTab] = useState("dashboard");
@@ -4509,17 +4514,25 @@ function AppInner() {
   // show a persistent footer banner + at most one interstitial per session on the free,
   // ad-supported Play Store build; no-ops entirely on web and for subscribed native accounts
   useEffect(() => {
-    if (loading || !session || !profile || !isNative) return;
+    if (loading || !session || !profile || !isNative || adFree === null) return;
     (async () => {
       await initAdMob();
-      if (subscribed) {
+      if (subscribed || adFree) {
         await hideFooterBanner();
       } else {
         await showFooterBanner();
         await showSessionInterstitial();
       }
     })();
-  }, [loading, session, profile, subscribed]);
+  }, [loading, session, profile, subscribed, adFree]);
+
+  // look up the Google Play "Remove ads" subscription and its price once the app has loaded
+  useEffect(() => {
+    if (!isNative || loading || !session) return;
+    hasAdFreeSubscription().then(setAdFree);
+    getAdFreePrice().then(setAdFreePrice);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, sessionUserId]);
 
   // ask for push notification permission once per account, so the evening check-in
   // reminder can reach the user even when the app is closed or they're offline
@@ -4578,6 +4591,15 @@ function AppInner() {
       return;
     }
     setSubscribed(false);
+  };
+
+  const handleRemoveAds = async () => {
+    setMobileNavOpen(false);
+    try {
+      if (await buyAdFreeSubscription()) setAdFree(true);
+    } catch (e) {
+      window.alert(`Couldn't complete the purchase: ${e?.message || "please try again."}`);
+    }
   };
 
   const handleAcceptTerms = () => {
@@ -4823,6 +4845,16 @@ function AppInner() {
             <button className="ft-tab" onClick={() => { setShowCheckIn(true); setMobileNavOpen(false); }}>
               <Calendar size={16} /> Evening check-in
             </button>
+            {isNative && !subscribed && adFree === false && (
+              <button className="ft-tab" onClick={handleRemoveAds} style={{ marginTop: 10 }}>
+                <Sparkles size={16} /> Remove ads{adFreePrice ? ` · ${adFreePrice}/month` : ""}
+              </button>
+            )}
+            {isNative && adFree && (
+              <button className="ft-tab" onClick={() => { setMobileNavOpen(false); manageAdFreeSubscription(); }} style={{ marginTop: 10 }}>
+                <Sparkles size={16} /> Manage ad-free plan
+              </button>
+            )}
             <button className="ft-tab" onClick={handleCancelSubscription} style={{ marginTop: 10 }}>
               <XCircle size={16} /> Cancel subscription
             </button>
