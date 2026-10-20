@@ -11,7 +11,7 @@ import {
 import { supabase } from "./src/supabaseClient.js";
 import { Capacitor } from "@capacitor/core";
 import { initAdMob, showFooterBanner, hideFooterBanner, showSessionInterstitial } from "./src/admob.js";
-import { hasAdFreeSubscription, getAdFreePrice, buyAdFreeSubscription, manageAdFreeSubscription } from "./src/playBilling.js";
+import { hasAdFreeSubscription, getAdFreePrice, buyAdFreeSubscription, restoreAdFreeSubscription, manageAdFreeSubscription } from "./src/playBilling.js";
 
 // capture ?ref=<code> the moment the app loads, and hold onto it until the
 // visitor actually creates an account (see the referrals table + AppInner's
@@ -1682,6 +1682,61 @@ function GoalsScreen({ goals, setGoals, profile, milestones, addMilestone, toggl
 
     <MilestoneGoals milestones={milestones} addMilestone={addMilestone} toggleMilestone={toggleMilestone} removeMilestone={removeMilestone} />
     </>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Remove ads (store subscription) modal                                  */
+/* ---------------------------------------------------------------------- */
+
+// The App Store requires the price, the auto-renewal terms, Terms/Privacy links and a restore
+// option to be shown before a subscription purchase; Google Play is happy with the same screen.
+function RemoveAdsModal({ price, onClose, onActivated }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const store = Capacitor.getPlatform() === "ios" ? "Apple ID" : "Google Play account";
+
+  const run = async (action) => {
+    setBusy(true);
+    setMsg("");
+    try {
+      if (await action()) onActivated();
+      else if (action === restoreAdFreeSubscription) setMsg("No active Remove ads subscription was found for this account.");
+    } catch (e) {
+      setMsg(`Couldn't complete the purchase: ${e?.message || "please try again."}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(27,36,32,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div className="ft-card" style={{ maxWidth: 380, width: "100%" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <h3 className="ft-display" style={{ margin: 0, fontSize: 17 }}>Remove ads</h3>
+          <button className="ft-btn-outline ft-btn" style={{ padding: 6 }} onClick={onClose} aria-label="Close"><X size={14} /></button>
+        </div>
+        <p style={{ fontSize: 15, fontWeight: 600, margin: "0 0 4px" }}>FitData Ad-Free{price ? ` — ${price} / month` : ""}</p>
+        <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 12px" }}>No banner ads and no full-screen ads, on this {store}.</p>
+        <button className="ft-btn" style={{ width: "100%", justifyContent: "center" }} disabled={busy} onClick={() => run(buyAdFreeSubscription)}>
+          {busy ? "Please wait…" : "Subscribe"}
+        </button>
+        <button className="ft-btn-outline ft-btn" style={{ width: "100%", justifyContent: "center", marginTop: 8 }} disabled={busy} onClick={() => run(restoreAdFreeSubscription)}>
+          Restore purchases
+        </button>
+        {msg && <p style={{ fontSize: 12, color: "var(--warn)", marginTop: 10 }}>{msg}</p>}
+        <p style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 12, lineHeight: 1.5 }}>
+          Payment is charged to your {store} when you confirm. The subscription renews automatically each month at the same price
+          unless it is cancelled at least 24 hours before the end of the current period. You can manage or cancel it any time in
+          your {store} subscription settings.
+        </p>
+        <p style={{ fontSize: 11, marginTop: 6 }}>
+          <a href="https://fitdata.fit/terms" target="_blank" rel="noopener noreferrer">Terms of Use</a>
+          {" · "}
+          <a href="https://fitdata.fit/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -4349,6 +4404,7 @@ function AppInner() {
   // check instead of flashing an interstitial at someone who already paid to remove them.
   const [adFree, setAdFree] = useState(null);
   const [adFreePrice, setAdFreePrice] = useState(null);
+  const [showRemoveAds, setShowRemoveAds] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [goals, setGoalsState] = useState({ calories: 2200, protein: 150, carb: 220, fat: 70, targetWeightKg: 75, workoutsPerWeek: 4, workoutsPerMonth: 0, steps: 8000, trainingDates: [] });
   const [tab, setTab] = useState("dashboard");
@@ -4593,13 +4649,9 @@ function AppInner() {
     setSubscribed(false);
   };
 
-  const handleRemoveAds = async () => {
+  const handleRemoveAds = () => {
     setMobileNavOpen(false);
-    try {
-      if (await buyAdFreeSubscription()) setAdFree(true);
-    } catch (e) {
-      window.alert(`Couldn't complete the purchase: ${e?.message || "please try again."}`);
-    }
+    setShowRemoveAds(true);
   };
 
   const handleAcceptTerms = () => {
@@ -4738,6 +4790,22 @@ function AppInner() {
     if (isNative) hideFooterBanner();
   };
 
+  // permanent, in-app account deletion (required by the App Store and Google Play)
+  const handleDeleteAccount = async () => {
+    setMobileNavOpen(false);
+    const typed = window.prompt(
+      "This permanently deletes your Fit Data account and all your logs, goals and measurements. It can't be undone.\n\nType DELETE to confirm."
+    );
+    if (typed?.trim().toUpperCase() !== "DELETE") return;
+    const { data, error } = await supabase.functions.invoke("delete-account");
+    if (error || !data?.ok) {
+      window.alert(data?.error || "Couldn't delete your account right now. Please try again.");
+      return;
+    }
+    window.alert("Your account has been deleted.");
+    logout();
+  };
+
   const streakDays = Array.from({ length: 14 }, (_, i) => {
     const d = todayStr(-(13 - i));
     return { date: d, logged: !!(foodByDate[d]?.length) };
@@ -4855,11 +4923,16 @@ function AppInner() {
                 <Sparkles size={16} /> Manage ad-free plan
               </button>
             )}
-            <button className="ft-tab" onClick={handleCancelSubscription} style={{ marginTop: 10 }}>
-              <XCircle size={16} /> Cancel subscription
-            </button>
+            {subscribed && (
+              <button className="ft-tab" onClick={handleCancelSubscription} style={{ marginTop: 10 }}>
+                <XCircle size={16} /> Cancel subscription
+              </button>
+            )}
             <button className="ft-tab" onClick={logout} style={{ marginTop: 10 }}>
               <LogOut size={16} /> Sign out
+            </button>
+            <button className="ft-tab" onClick={handleDeleteAccount} style={{ marginTop: 10, opacity: 0.6, fontSize: 12 }}>
+              <Trash2 size={14} /> Delete account
             </button>
           </div>
         </div>
@@ -4937,6 +5010,14 @@ function AppInner() {
           {isNative && !subscribed && <div style={{ height: 64 }} />}
         </div>
       </div>
+
+      {showRemoveAds && (
+        <RemoveAdsModal
+          price={adFreePrice}
+          onClose={() => setShowRemoveAds(false)}
+          onActivated={() => { setAdFree(true); setShowRemoveAds(false); }}
+        />
+      )}
 
       {showCheckIn && !showOnboarding && (
         <DailyCheckInModal
