@@ -11,12 +11,12 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: fitdata.fit
+        bundle_identifier: fitdata-fitdata.fit
       vars:
         XCODE_PROJECT: ios/App/App.xcodeproj
         XCODE_SCHEME: App
         # App Store Connect -> Apps -> FitData -> App Information -> "Apple ID" (a number)
-        APP_STORE_APPLE_ID: 0000000000
+        APP_STORE_APPLE_ID: 6824942192
       node: 22
       xcode: latest
     triggering:
