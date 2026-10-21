@@ -9,10 +9,12 @@ workflows:
       # Codemagic -> Team settings -> Integrations -> App Store Connect; the key name must match.
       app_store_connect: FitData ASC key
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: fitdata-fitdata.fit
+      groups:
+        # Codemagic -> fitness-tracker -> Environment variables, group "ios_signing":
+        # CERTIFICATE_PRIVATE_KEY (secret) = the RSA private key the distribution certificate uses.
+        - ios_signing
       vars:
+        BUNDLE_ID: fitdata-fitdata.fit
         XCODE_PROJECT: ios/App/App.xcodeproj
         XCODE_SCHEME: App
         # App Store Connect -> Apps -> FitData -> App Information -> "Apple ID" (a number)
@@ -29,7 +31,13 @@ workflows:
       - name: Sync web app into the iOS project
         script: npx cap sync ios
       - name: Set up code signing
-        script: xcode-project use-profiles --project "$XCODE_PROJECT"
+        # Creates (or reuses) the Apple Distribution certificate and App Store profile through the
+        # App Store Connect API key from the integration, so nothing has to be made by hand.
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --certificate-key=@env:CERTIFICATE_PRIVATE_KEY --create
+          keychain add-certificates
+          xcode-project use-profiles --project "$XCODE_PROJECT"
       - name: Set build number (one above the latest on TestFlight)
         script: |
           LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
