@@ -46,7 +46,7 @@
 	<!-- AdMob app ID for FitData iOS (AdMob -> Apps -> FitData iOS). Must be a real ID or the
 	     Google Mobile Ads SDK crashes at launch. -->
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>ca-app-pub-8770927231193896~1864421944</string>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>

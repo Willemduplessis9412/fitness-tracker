@@ -8,11 +8,9 @@ const AD_UNITS = {
     banner: "ca-app-pub-8770927231193896/1954537420",
     interstitial: "ca-app-pub-8770927231193896/1272011141",
   },
-  // TODO: replace with the FitData iOS ad units from AdMob before the App Store release --
-  // these are Google's official iOS test units (safe to ship, but earn nothing).
   ios: {
-    banner: "ca-app-pub-3940256099942544/2934735716",
-    interstitial: "ca-app-pub-3940256099942544/4411468910",
+    banner: "ca-app-pub-8770927231193896/3225430069",
+    interstitial: "ca-app-pub-8770927231193896/9926569788",
   },
 };
 const units = () => AD_UNITS[Capacitor.getPlatform()] || AD_UNITS.android;
