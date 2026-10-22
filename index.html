@@ -10,6 +10,35 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- iOS app only: if startup fails, print the error on screen instead of a blank page, since
+         there's no Mac to attach Safari's inspector. Plain ES5 so it runs even when the main
+         bundle can't. -->
+    <script>
+      (function () {
+        if (location.protocol !== "capacitor:") return;
+        function show(msg) {
+          var box = document.getElementById("boot-error");
+          if (!box) {
+            box = document.createElement("pre");
+            box.id = "boot-error";
+            box.style.cssText = "white-space:pre-wrap;word-break:break-word;font:12px/1.4 monospace;color:#b00020;background:#fff;padding:48px 16px 16px;margin:0;";
+            document.body.appendChild(box);
+          }
+          box.textContent += msg + "\n\n";
+        }
+        window.addEventListener("error", function (e) {
+          show("Error: " + (e.message || e) + "\n" + (e.filename || "") + ":" + (e.lineno || "") + ":" + (e.colno || "") + (e.error && e.error.stack ? "\n" + e.error.stack : ""));
+        }, true);
+        window.addEventListener("unhandledrejection", function (e) {
+          var r = e.reason;
+          show("Unhandled promise: " + ((r && (r.stack || r.message)) || r));
+        });
+        setTimeout(function () {
+          var root = document.getElementById("root");
+          if (root && !root.firstChild) show("App did not render after 8s.\n" + navigator.userAgent);
+        }, 8000);
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
