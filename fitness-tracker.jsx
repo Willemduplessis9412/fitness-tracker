@@ -84,6 +84,16 @@ const TOKENS = `
   .ft-hamburger{ display:none; }
   .ft-sidebar-close{ display:none; }
   .ft-overlay{ display:none; }
+  /* let the main column shrink to the screen instead of growing to its widest child (the day
+     strip) -- iOS doesn't zoom out to fit an over-wide page the way Android's WebView does */
+  .ft-main{ min-width:0; }
+
+  /* iOS app: keep controls clear of the status bar / Dynamic Island (see src/main.jsx) */
+  html.ft-ios .ft-hamburger{ top:calc(12px + env(safe-area-inset-top)) !important; }
+  html.ft-ios .ft-main{ padding-top:calc(64px + env(safe-area-inset-top)) !important; }
+  html.ft-ios .ft-sidebar{ padding-top:calc(20px + env(safe-area-inset-top)) !important; }
+  html.ft-ios .ft-sidebar-close{ top:calc(10px + env(safe-area-inset-top)) !important; }
+  html.ft-ios .ft-auth-bar{ padding-top:calc(14px + env(safe-area-inset-top)) !important; }
 
   @media (max-width: 768px){
     .ft-hamburger{
