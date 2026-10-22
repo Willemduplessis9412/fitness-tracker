@@ -1694,7 +1694,7 @@ function GoalsScreen({ goals, setGoals, profile, milestones, addMilestone, toggl
 function RemoveAdsModal({ price, onClose, onActivated }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-  const store = Capacitor.getPlatform() === "ios" ? "Apple ID" : "Google Play account";
+  const store = Capacitor.getPlatform() === "android" ? "Google Play account" : "Apple ID";
 
   const run = async (action) => {
     setBusy(true);
