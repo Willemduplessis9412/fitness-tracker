@@ -387,6 +387,32 @@ async function storeGet(key, fallback = null) {
     return fallback;
   }
 }
+// Fetch several keys in one request. Missing keys (or a failed request) come back as their
+// fallback, same as storeGet would give one at a time.
+async function storeGetMany(fallbacks) {
+  const out = { ...fallbacks };
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return out;
+    const { data, error } = await supabase
+      .from("kv_store")
+      .select("key, value")
+      .eq("user_id", session.user.id)
+      .in("key", Object.keys(fallbacks));
+    if (error) {
+      console.error("storage get failed", error);
+      notifyStoreError("load");
+      return out;
+    }
+    for (const row of data || []) out[row.key] = row.value;
+    return out;
+  } catch (e) {
+    console.error("storage get failed", e);
+    notifyStoreError("load");
+    return out;
+  }
+}
+
 async function storeSet(key, value) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -607,7 +633,7 @@ function AuthScreen() {
         if (!data.session) setCheckEmail(true);
       } else if (mode === "reset") {
         const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-          redirectTo: window.location.origin,
+          redirectTo: Capacitor.isNativePlatform() ? "https://fitdata.fit" : window.location.origin,
         });
         if (err) throw err;
         setResetSent(true);
@@ -3927,9 +3953,95 @@ function ShareDownloadButtons({ onGetCanvas, filename, shareTitle, shareText }) 
   );
 }
 
+// one-line descriptions shared by the on-screen Full report and its plain-text share
+function describeWorkout(w) {
+  const parts = [];
+  if (w.distanceKm) parts.push(`${w.distanceKm} km`);
+  if (w.duration) parts.push(`${w.duration} min`);
+  parts.push(`${w.calsBurned || 0} kcal`);
+  if (w.effort != null) parts.push(`${w.effort}% effort`);
+  return parts.join(" · ");
+}
+
+function describeExercise(ex) {
+  const parts = [];
+  if (ex.reps != null) parts.push(`${ex.reps} reps`);
+  if (ex.timeMin != null && ex.timeSec != null) parts.push(`${ex.timeMin}m ${ex.timeSec}s`);
+  else if (ex.timeMin != null) parts.push(`${ex.timeMin} min`);
+  else if (ex.timeSec != null) parts.push(`${ex.timeSec} sec`);
+  if (ex.weight != null) parts.push(`${ex.weight}kg`);
+  if (ex.restSec != null) parts.push(`rest ${ex.restSec}s`);
+  return `${ex.name}${parts.length ? ` — ${parts.join(" · ")}` : ""}`;
+}
+
+function describeFood(e) {
+  return `${Math.round(e.cal)} kcal · P ${round1(e.p)}g · C ${round1(e.c)}g · F ${round1(e.f)}g`;
+}
+
+function fullReportDates(from, to) {
+  const out = [];
+  const d = new Date(from + "T00:00:00");
+  const end = new Date(to + "T00:00:00");
+  while (d <= end) {
+    out.push(ymd(d.getFullYear(), d.getMonth(), d.getDate()));
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+}
+
+function fullReportText(days, from, to) {
+  const fmt = (s) => new Date(s + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+  const lines = ["FIT DATA · Full report", `${fmt(from)} – ${fmt(to)}`, ""];
+  for (const { date, label, report } of days) {
+    lines.push(`${label} — ${report.metCount}/${report.totalTargets} targets`);
+    lines.push("TARGETS");
+    for (const r of report.rows) {
+      lines.push(r.binary ? `  ${r.key}: ${r.label}` : `  ${r.key}: ${r.value}${r.unit}${r.target ? ` / ${r.target}${r.unit}` : ""} — ${r.label}`);
+    }
+    lines.push("WORKOUTS");
+    if (report.workouts.length === 0) lines.push("  —");
+    for (const w of report.workouts) {
+      lines.push(`  ${w.type} — ${describeWorkout(w)}`);
+      for (const ex of w.exercises || []) lines.push(`    ${describeExercise(ex)}`);
+    }
+    lines.push("FOOD");
+    if (report.food.length === 0) lines.push("  —");
+    for (const e of report.food) lines.push(`  ${e.food || e.name}${e.grams ? ` (${e.grams}g)` : ""} — ${describeFood(e)}`);
+    lines.push("────────────────────", "");
+  }
+  return { text: lines.join("\n"), filename: `full-report-${from}-to-${to}.txt` };
+}
+
+async function shareOrDownloadText(text, filename, title) {
+  if (navigator.share) {
+    try {
+      await navigator.share({ title, text });
+      return;
+    } catch (e) {
+      if (e && e.name === "AbortError") return; // user closed the share sheet
+    }
+  }
+  const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function FullReportSection({ title, children }) {
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div className="ft-label" style={{ marginBottom: 4, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ink-soft)" }}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
 function DailyReportScreen({ foodByDate, workoutByDate, stepsByDate, goals, milestones, onOpenFood, onOpenWorkout }) {
-  const [mode, setMode] = useState("day"); // day | month
+  const [mode, setMode] = useState("day"); // day | month | full
   const [date, setDate] = useState(todayStr());
+  const [fullFrom, setFullFrom] = useState(todayStr(-6));
+  const [fullTo, setFullTo] = useState(todayStr());
   const [reportMonth, setReportMonth] = useState(() => {
     const t = new Date();
     return new Date(t.getFullYear(), t.getMonth(), 1);
@@ -4017,18 +4129,49 @@ function DailyReportScreen({ foodByDate, workoutByDate, stepsByDate, goals, mile
     shareOrDownloadCanvas(canvas, `monthly-report-${year}-${pad2(monthIdx + 1)}.png`, "My monthly report", monthSummary);
   };
 
+  // ---- full report: every day in the chosen range, oldest first ----
+  const fullStart = fullFrom <= fullTo ? fullFrom : fullTo;
+  const fullEndRaw = fullFrom <= fullTo ? fullTo : fullFrom;
+  const fullEnd = fullEndRaw > todayStr() ? todayStr() : fullEndRaw;
+  const fullDays = mode === "full" && fullStart && fullEnd
+    ? fullReportDates(fullStart, fullEnd).map((d) => ({
+        date: d,
+        label: new Date(d + "T00:00:00").toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
+        report: computeDayReport(d, foodByDate, workoutByDate, stepsByDate, goals),
+      }))
+    : [];
+  const handleShareFull = () => {
+    if (fullDays.length === 0) return;
+    const { text, filename } = fullReportText(fullDays, fullStart, fullEnd);
+    shareOrDownloadText(text, filename, "My full report");
+  };
+
+  const modeBtn = (m, label) => (
+    <button className="ft-btn-outline ft-btn" style={{ fontSize: 11, padding: "4px 10px", borderColor: mode === m ? "var(--ink)" : "var(--line-strong)", borderWidth: mode === m ? 2 : 1 }} onClick={() => setMode(m)}>{label}</button>
+  );
+
   return (
     <div>
       <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <h2 className="ft-display" style={{ margin: 0, fontSize: 18 }}>{mode === "day" ? "Daily report" : "Monthly report"}</h2>
+          <h2 className="ft-display" style={{ margin: 0, fontSize: 18 }}>{mode === "day" ? "Daily report" : mode === "month" ? "Monthly report" : "Full report"}</h2>
           <div style={{ display: "flex", gap: 6 }}>
-            <button className="ft-btn-outline ft-btn" style={{ fontSize: 11, padding: "4px 10px", borderColor: mode === "day" ? "var(--ink)" : "var(--line-strong)", borderWidth: mode === "day" ? 2 : 1 }} onClick={() => setMode("day")}>Day</button>
-            <button className="ft-btn-outline ft-btn" style={{ fontSize: 11, padding: "4px 10px", borderColor: mode === "month" ? "var(--ink)" : "var(--line-strong)", borderWidth: mode === "month" ? 2 : 1 }} onClick={() => setMode("month")}>Month</button>
+            {modeBtn("day", "Day")}
+            {modeBtn("month", "Month")}
+            {modeBtn("full", "Full report")}
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {mode === "day" ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          {mode === "full" ? (
+            <>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+                From <input className="ft-input" style={{ width: 150 }} type="date" value={fullFrom} max={todayStr()} onChange={(e) => setFullFrom(e.target.value)} />
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+                To <input className="ft-input" style={{ width: 150 }} type="date" value={fullTo} max={todayStr()} onChange={(e) => setFullTo(e.target.value)} />
+              </label>
+            </>
+          ) : mode === "day" ? (
             <>
               <input className="ft-input" style={{ width: 170 }} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
               {!isToday && <button className="ft-btn-outline ft-btn" style={{ fontSize: 12 }} onClick={() => setDate(todayStr())}>Today</button>}
@@ -4040,14 +4183,71 @@ function DailyReportScreen({ foodByDate, workoutByDate, stepsByDate, goals, mile
               <button className="ft-btn-outline ft-btn" style={{ padding: "6px 10px" }} onClick={() => setReportMonth(new Date(year, monthIdx + 1, 1))}>›</button>
             </>
           )}
-          <button className="ft-btn-outline ft-btn" style={{ fontSize: 12 }} onClick={mode === "day" ? handleShareDay : handleShareMonth}>
+          <button className="ft-btn-outline ft-btn" style={{ fontSize: 12 }} onClick={mode === "day" ? handleShareDay : mode === "month" ? handleShareMonth : handleShareFull}>
             <Share2 size={13} /> Share
           </button>
           <button className="ft-btn" style={{ fontSize: 12 }} onClick={() => window.print()}>Download / Print</button>
         </div>
       </div>
 
-      {mode === "day" ? (
+      {mode === "full" ? (
+        <div className="ft-card print-area" style={{ maxWidth: 640, margin: "0 auto", padding: 24 }}>
+          <div style={{ textAlign: "center", borderBottom: "2px solid var(--ink)", paddingBottom: 14, marginBottom: 18 }}>
+            <p style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-soft)", margin: "0 0 4px" }}>FIT DATA · Full Report</p>
+            <h1 className="ft-display" style={{ fontSize: 18, margin: 0 }}>
+              {fullDays.length > 0 ? `${fullDays[0].label} – ${fullDays[fullDays.length - 1].label}` : "Pick a date range"}
+            </h1>
+            <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "4px 0 0" }}>{fullDays.length} day{fullDays.length === 1 ? "" : "s"}</p>
+          </div>
+
+          {fullDays.map(({ date: d, label, report }, i) => (
+            <div key={d} style={{ paddingBottom: 18, marginBottom: 18, borderBottom: i < fullDays.length - 1 ? "3px solid var(--ink)" : "none" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                <h3 className="ft-display" style={{ fontSize: 16, margin: 0 }}>{label}</h3>
+                <span className="ft-mono" style={{ fontSize: 12, color: "var(--ink-soft)" }}>{report.metCount}/{report.totalTargets} targets</span>
+              </div>
+
+              <FullReportSection title="Targets">
+                {report.rows.map((r) => (
+                  <div key={r.key} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 13, padding: "3px 0", borderBottom: "1px solid var(--line)" }}>
+                    <span>
+                      {r.key}
+                      {!r.binary && <span className="ft-mono" style={{ fontSize: 11, color: "var(--ink-soft)" }}> {r.value}{r.unit}{r.target ? ` / ${r.target}${r.unit}` : ""}</span>}
+                    </span>
+                    <span style={{ color: r.color, fontWeight: 500, whiteSpace: "nowrap" }}>{r.label}</span>
+                  </div>
+                ))}
+              </FullReportSection>
+
+              <FullReportSection title="Workouts">
+                {report.workouts.length === 0 ? (
+                  <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>—</div>
+                ) : report.workouts.map((w) => (
+                  <div key={w.id} style={{ fontSize: 13, padding: "3px 0" }}>
+                    <span style={{ fontWeight: 500 }}>{w.type}</span>
+                    <span className="ft-mono" style={{ fontSize: 11, color: "var(--ink-soft)" }}> — {describeWorkout(w)}</span>
+                    {(w.exercises || []).map((ex, j) => (
+                      <div key={j} className="ft-mono" style={{ fontSize: 11, color: "var(--ink-soft)", paddingLeft: 12 }}>{describeExercise(ex)}</div>
+                    ))}
+                  </div>
+                ))}
+              </FullReportSection>
+
+              <FullReportSection title="Food">
+                {report.food.length === 0 ? (
+                  <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>—</div>
+                ) : report.food.map((e) => (
+                  <div key={e.id} style={{ fontSize: 13, padding: "3px 0" }}>
+                    <span style={{ fontWeight: 500 }}>{e.food || e.name}</span>
+                    {e.grams ? <span style={{ color: "var(--ink-soft)" }}> ({e.grams}g)</span> : null}
+                    <span className="ft-mono" style={{ fontSize: 11, color: "var(--ink-soft)" }}> — {describeFood(e)}</span>
+                  </div>
+                ))}
+              </FullReportSection>
+            </div>
+          ))}
+        </div>
+      ) : mode === "day" ? (
         <>
           <div className="ft-card print-area" style={{ maxWidth: 640, margin: "0 auto", padding: 32 }}>
             <div style={{ textAlign: "center", borderBottom: "2px solid var(--ink)", paddingBottom: 18, marginBottom: 20 }}>
@@ -4488,7 +4688,33 @@ function AppInner() {
     }
     (async () => {
       setLoading(true);
-      let p = await storeGet("profile", null);
+      // everything in one kv_store request, alongside the subscription lookup, instead of ~14
+      // round trips one after another (which is what made startup slow)
+      const [s, { data: subRow }] = await Promise.all([
+        storeGetMany({
+          "profile": null,
+          "onboarding-tour-seen": null,
+          "terms-version": null,
+          "goals": null,
+          "test-exercises": [],
+          "test-results": {},
+          "inbody-scans": [],
+          "measurements": [],
+          "milestone-goals": [],
+          "custom-foods": [],
+          "checkin-shown-date": null,
+          "foodlogs": {},
+          "workoutlogs": {},
+          "steps": {},
+        }),
+        supabase
+          .from("subscriptions")
+          .select("status")
+          .eq("user_id", session.user.id)
+          .maybeSingle()
+          .then((r) => r, () => ({ data: null })),
+      ]);
+      let p = s["profile"];
       if (!p) {
         const meta = session.user.user_metadata || {};
         p = { name: meta.name || session.user.email.split("@")[0], email: session.user.email, startWeightKg: undefined };
@@ -4504,23 +4730,17 @@ function AppInner() {
       } else {
         // pre-existing account from before the onboarding tour shipped -- don't show it
         // retroactively, only to accounts created from here on (the `!p` branch above)
-        const seen = await storeGet("onboarding-tour-seen", null);
-        if (seen === null) await storeSet("onboarding-tour-seen", true);
+        if (s["onboarding-tour-seen"] === null) storeSet("onboarding-tour-seen", true);
       }
-      const { data: subRow } = await supabase
-        .from("subscriptions")
-        .select("status")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
-      const tv = await storeGet("terms-version", null);
-      const g = await storeGet("goals", null);
-      const te = await storeGet("test-exercises", []);
-      const tr = await storeGet("test-results", {});
-      const ib = await storeGet("inbody-scans", []);
-      const meas = await storeGet("measurements", []);
-      const ms = await storeGet("milestone-goals", []);
-      const cf = await storeGet("custom-foods", []);
-      const cid = await storeGet("checkin-shown-date", null);
+      const tv = s["terms-version"];
+      const g = s["goals"];
+      const te = s["test-exercises"];
+      const tr = s["test-results"];
+      const ib = s["inbody-scans"];
+      const meas = s["measurements"];
+      const ms = s["milestone-goals"];
+      const cf = s["custom-foods"];
+      const cid = s["checkin-shown-date"];
       if (cid) setCheckInShownDate(cid);
       setProfileState(p);
       if (subRow?.status === "active") setSubscribed(true);
@@ -4534,9 +4754,9 @@ function AppInner() {
       if (cf) setCustomFoods(cf);
 
       // all food/workout logs live under two consolidated keys (one request each)
-      const fMap = await storeGet("foodlogs", {});
-      const wMap = await storeGet("workoutlogs", {});
-      const sMap = await storeGet("steps", {});
+      const fMap = s["foodlogs"];
+      const wMap = s["workoutlogs"];
+      const sMap = s["steps"];
       setFoodByDate(fMap || {});
       setWorkoutByDate(wMap || {});
       setStepsByDate(sMap || {});
